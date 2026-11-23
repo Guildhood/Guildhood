@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Guildhood app icon. Original artwork created for this project (see ASSET-LICENSES.md). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f6b48"/>
+      <stop offset="1" stop-color="#1d2b24"/>
+    </linearGradient>
+    <linearGradient id="cu" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e3a45f"/>
+      <stop offset="1" stop-color="#c9692f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <path d="M256 70 C360 90 420 170 410 270 C330 280 250 240 220 160 C214 130 226 96 256 70 Z" fill="#3e8e5e"/>
+  <path d="M256 70 C300 150 340 200 410 270" stroke="#2b6a46" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <path d="M86 360 Q90 318 150 310 L196 262 Q206 252 226 252 L318 252 Q340 252 352 266 L388 310 Q430 318 430 360 L430 384 L86 384 Z" fill="url(#cu)"/>
+  <path d="M214 270 L246 268 L246 312 L180 312 Z M266 268 L318 268 Q332 268 340 280 L360 312 L266 312 Z" fill="#24323b"/>
+  <circle cx="160" cy="388" r="38" fill="#1b1b1b"/>
+  <circle cx="356" cy="388" r="38" fill="#1b1b1b"/>
+  <circle cx="160" cy="388" r="15" fill="#d9d2c2"/>
+  <circle cx="356" cy="388" r="15" fill="#d9d2c2"/>
+</svg>

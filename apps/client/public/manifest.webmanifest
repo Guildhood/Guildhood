@@ -1,0 +1,16 @@
+{
+  "name": "Guildhood",
+  "short_name": "Guildhood",
+  "description": "Drive around your neighborhood with friends.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1d2b24",
+  "theme_color": "#1d2b24",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -3,6 +3,7 @@ import {
   NEUTRAL_INPUT,
   PARK_INPUT,
   TICK_DT,
+  TICK_RATE,
   chooseSpawn,
   quantizeCar,
   resolveCarPair,
@@ -45,6 +46,8 @@ export interface Seat {
   starvedTicks: number;
   /** Consecutive starved ticks; after STARVE_LIMIT the car brakes instead of repeating input. */
   starvedStreak: number;
+  /** Consecutive ticks with more than BACKLOG_TARGET inputs waiting. */
+  backlogTicks: number;
 }
 
 const DISCONNECTED_INPUT: DriveInput = PARK_INPUT;
@@ -53,6 +56,12 @@ const DISCONNECTED_INPUT: DriveInput = PARK_INPUT;
  * backgrounded with the socket still open) must not keep driving: after ~200 ms the car brakes.
  */
 const STARVE_LIMIT = 6;
+/**
+ * A burst (frame stall, Wi-Fi hiccup) can leave inputs queued, adding latency for the rest of the
+ * session because inputs arrive and are consumed at the same rate. If more than BACKLOG_TARGET
+ * stay queued for a full second, the oldest is dropped (never simulated, so no speed advantage).
+ */
+const BACKLOG_TARGET = 2;
 const SLOW_CLIENT_BYTES = 256 * 1024;
 
 /**
@@ -105,6 +114,7 @@ export class LiveInstance {
       disconnectedAt: null,
       starvedTicks: 0,
       starvedStreak: 0,
+      backlogTicks: 0,
     };
     this.seats.set(userId, seat);
     this.emptySince = null;
@@ -122,6 +132,7 @@ export class LiveInstance {
     seat.ack = -1;
     seat.lastInput = { ...NEUTRAL_INPUT };
     seat.starvedStreak = 0;
+    seat.backlogTicks = 0;
   }
 
   removeSeat(userId: string, now: number): Seat | undefined {
@@ -146,6 +157,14 @@ export class LiveInstance {
       if (seat.conn === null) {
         input = DISCONNECTED_INPUT;
       } else {
+        if (seat.inputs.length > BACKLOG_TARGET) {
+          if (++seat.backlogTicks > TICK_RATE) {
+            seat.inputs.shift();
+            seat.backlogTicks = 0;
+          }
+        } else {
+          seat.backlogTicks = 0;
+        }
         const next = seat.inputs.shift();
         if (next) {
           input = next.input;
