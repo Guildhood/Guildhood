@@ -1,0 +1,21 @@
+{
+  "name": "@guildhood/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@guildhood/shared": "0.1.0",
+    "@supabase/supabase-js": "2.119.2",
+    "jose": "6.2.18",
+    "ws": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2",
+    "esbuild": "0.28.2"
+  }
+}
