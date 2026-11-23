@@ -28,24 +28,36 @@ function waitFor<T>(register: (resolve: (v: T) => void) => void, ms: number): Pr
 }
 
 // SUBSCRIBED fires before the database change feed is attached; Realtime confirms the latter with
-// a "system" message from the postgres_changes extension. Wait for both.
-async function subscribed(channel: RealtimeChannel): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('postgres_changes never became ready')), 15_000);
-    channel.on('system', {}, (msg: { extension?: string; status?: string }) => {
-      if (msg.extension === 'postgres_changes' && msg.status === 'ok') {
-        clearTimeout(timer);
-        resolve();
-      }
-    });
-    channel.subscribe((status, err) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        clearTimeout(timer);
-        reject(err ?? new Error(status));
-      }
-    });
-  });
-  channels.push(channel);
+// a "system" message from the postgres_changes extension. Wait for that, retrying transport
+// failures (Realtime restarts briefly after `supabase db reset`).
+async function subscribed(make: () => RealtimeChannel, client: { removeChannel(c: RealtimeChannel): unknown }): Promise<void> {
+  const deadline = Date.now() + 75_000;
+  for (;;) {
+    const channel = make();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('postgres_changes never became ready')), 15_000);
+        channel.on('system', {}, (msg: { extension?: string; status?: string }) => {
+          if (msg.extension === 'postgres_changes' && msg.status === 'ok') {
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+        channel.subscribe((status, err) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            clearTimeout(timer);
+            reject(err ?? new Error(status));
+          }
+        });
+      });
+      channels.push(channel);
+      return;
+    } catch (err) {
+      await client.removeChannel(channel);
+      if (Date.now() > deadline) throw err;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
 }
 
 describe('Data API as a signed-in player', () => {
@@ -81,7 +93,7 @@ describe('Data API as a signed-in player', () => {
 });
 
 describe('Realtime notifications', () => {
-  it('delivers a friend request to the recipient only', async () => {
+  it('delivers a friend request to the recipient only', { timeout: 150_000 }, async () => {
     const a = await player('rt-a');
     const b = await player('rt-b');
     const eavesdropper = await player('rt-c');
@@ -92,17 +104,21 @@ describe('Realtime notifications', () => {
     const gotC = waitFor<Record<string, unknown>>((r) => (deliveredToC = r), 6_000);
 
     await subscribed(
-      b.client
-        .channel(`notes-${b.userId}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${b.userId}` }, (p) =>
-          deliveredToB?.(p.new),
-        ),
+      () =>
+        b.client
+          .channel(`notes-${b.userId}`)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${b.userId}` }, (p) =>
+            deliveredToB?.(p.new),
+          ),
+      b.client,
     );
     // No filter: RLS alone must stop C from seeing B's rows.
     await subscribed(
-      eavesdropper.client
-        .channel(`notes-eaves-${eavesdropper.userId}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (p) => deliveredToC?.(p.new)),
+      () =>
+        eavesdropper.client
+          .channel(`notes-eaves-${eavesdropper.userId}`)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (p) => deliveredToC?.(p.new)),
+      eavesdropper.client,
     );
 
     const { data: code } = await b.client.from('profiles').select('friend_code').single();

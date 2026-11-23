@@ -20,9 +20,15 @@ export interface DriveInput {
   throttle: number;
   /** 0..1 (brakes, then reverses when stopped). */
   brake: number;
+  /**
+   * Server-only: bring the car to a stop and hold it (never reverses). Used for disconnected or
+   * silent players. Not part of the client protocol, so clients cannot send it.
+   */
+  park?: boolean;
 }
 
 export const NEUTRAL_INPUT: Readonly<DriveInput> = { steer: 0, throttle: 0, brake: 0 };
+export const PARK_INPUT: Readonly<DriveInput> = { steer: 0, throttle: 0, brake: 0, park: true };
 
 const POS_DECIMALS = 3;
 const VEL_DECIMALS = 3;
@@ -55,6 +61,7 @@ export function forwardSpeed(s: CarState): number {
  */
 export function stepCar(s: CarState, rawInput: DriveInput, spec: VehicleSpec, world: WorldMap, dt: number): CarState {
   const input = sanitizeInput(rawInput);
+  const park = rawInput.park === true;
   const sinH = Math.sin(s.heading);
   const cosH = Math.cos(s.heading);
   // Forward (sinH, cosH); right-hand side when facing forward with +y up is (-cosH, sinH).
@@ -66,14 +73,17 @@ export function stepCar(s: CarState, rawInput: DriveInput, spec: VehicleSpec, wo
 
   // Longitudinal: engine, brakes, reverse.
   let a = 0;
-  if (input.throttle > 0) {
+  if (park) {
+    const decel = spec.brake * 0.6 * dt;
+    vf = Math.abs(vf) <= decel ? 0 : vf - Math.sign(vf) * decel;
+  } else if (input.throttle > 0) {
     if (vf < -0.3) a += spec.brake * input.throttle; // gas while rolling back acts as a brake
     else {
       const r = vf / topSpeed; // quadratic taper: strong mid-range pull, zero at top speed
       a += spec.accel * input.throttle * Math.max(0, 1 - r * Math.abs(r));
     }
   }
-  if (input.brake > 0) {
+  if (input.brake > 0 && !park) {
     if (vf > 0.3) a -= spec.brake * input.brake;
     else a -= spec.reverseAccel * input.brake * Math.max(0, 1 - -vf / spec.maxReverse);
   }

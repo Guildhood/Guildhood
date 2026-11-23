@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-// @ts-expect-error -- plain ESM script shared with the dev tooling
 import { readLocalSupabase } from '../../scripts/supabase-env.mjs';
 
 export interface LocalEnv {

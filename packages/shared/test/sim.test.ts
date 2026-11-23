@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BODY_CIRCLE_RADIUS,
+  PARK_INPUT,
   TICK_DT,
   VEHICLE_SPECS,
   WORLDS,
@@ -93,6 +94,16 @@ describe('vehicle simulation', () => {
     expect(stoppedAt).toBeGreaterThan(0);
     expect(stoppedAt).toBeLessThan(40);
     expect(forwardSpeed(s)).toBeLessThan(-spec.maxReverse * 0.8);
+  });
+
+  it('park input stops the car and holds it without reversing', () => {
+    let s: CarState = { x: 40, z: -70, heading: Math.PI / 2, vx: 18, vz: 0 };
+    for (let i = 0; i < 150; i++) s = stepCar(s, PARK_INPUT, spec, world, TICK_DT);
+    expect(s.vx).toBe(0);
+    expect(s.vz).toBe(0);
+    const x = s.x;
+    for (let i = 0; i < 150; i++) s = stepCar(s, PARK_INPUT, spec, world, TICK_DT);
+    expect(s.x).toBe(x);
   });
 
   it('clamps out-of-range and non-finite input', () => {

@@ -251,35 +251,51 @@ as $$
   select count(*)::int from updated;
 $$;
 
+-- Concurrency: close the instance FIRST (row lock), then clear presence in a later statement.
+-- server_set_presence holds a FOR SHARE lock on the open instance row while it writes, so either
+-- it finishes first (and its row is cleared here) or it waits and then sees the instance closed.
 create or replace function public.server_close_instance(p_instance_id uuid)
 returns void
-language sql
+language plpgsql
 security definer
 set search_path = ''
 as $$
-  update public.session_presence
-  set instance_id = null, updated_at = now()
-  where instance_id = p_instance_id;
-
+begin
   update public.session_instances
   set status = 'closed', closed_at = now(), player_count = 0
   where id = p_instance_id and status = 'open';
+
+  update public.session_presence
+  set instance_id = null, updated_at = now()
+  where instance_id = p_instance_id;
+end;
 $$;
 
 create or replace function public.server_set_presence(p_user_id uuid, p_instance_id uuid)
 returns void
-language sql
+language plpgsql
 security definer
 set search_path = ''
 as $$
-  insert into public.session_presence (user_id, instance_id, neighborhood_id, updated_at)
-  select p_user_id, si.id, si.neighborhood_id, now()
+declare
+  v_neighborhood uuid;
+begin
+  -- Lock the instance row against a concurrent close until this write commits.
+  select si.neighborhood_id into v_neighborhood
   from public.session_instances si
   where si.id = p_instance_id and si.status = 'open'
+  for share;
+  if not found then
+    return;
+  end if;
+
+  insert into public.session_presence (user_id, instance_id, neighborhood_id, updated_at)
+  values (p_user_id, p_instance_id, v_neighborhood, now())
   on conflict (user_id) do update
     set instance_id = excluded.instance_id,
         neighborhood_id = excluded.neighborhood_id,
         updated_at = excluded.updated_at;
+end;
 $$;
 
 -- Clears presence only if the player is still recorded in this instance, so a late "left"
@@ -296,30 +312,31 @@ as $$
 $$;
 
 -- Close instances whose server stopped heartbeating (crash, deploy) and clear their presence.
+-- Same ordering as server_close_instance: close first, clear presence in a separate statement.
 create or replace function public.server_reap_stale_instances(p_stale_after_seconds int default 45)
 returns int
-language sql
+language plpgsql
 security definer
 set search_path = ''
 as $$
-  with stale as (
-    select id from public.session_instances
-    where status = 'open'
-      and last_heartbeat_at < now() - make_interval(secs => greatest(p_stale_after_seconds, 10))
-  ),
-  cleared as (
-    update public.session_presence sp
-    set instance_id = null, updated_at = now()
-    where sp.instance_id in (select id from stale)
-    returning 1
-  ),
-  closed as (
+declare
+  v_closed uuid[];
+begin
+  with closed as (
     update public.session_instances si
     set status = 'closed', closed_at = now(), player_count = 0
-    where si.id in (select id from stale)
-    returning 1
+    where si.status = 'open'
+      and si.last_heartbeat_at < now() - make_interval(secs => greatest(p_stale_after_seconds, 10))
+    returning si.id
   )
-  select count(*)::int from closed;
+  select coalesce(array_agg(id), '{}') into v_closed from closed;
+
+  update public.session_presence
+  set instance_id = null, updated_at = now()
+  where instance_id = any (v_closed);
+
+  return coalesce(array_length(v_closed, 1), 0);
+end;
 $$;
 
 -- ---------------------------------------------------------------------------------------------
