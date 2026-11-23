@@ -75,6 +75,6 @@ export async function driveWithTouch(page: Page, ms: number, steerDx = 0): Promi
 /** A fresh emulated iPad (separate cookies/storage = a separate player). */
 export async function newIpad(browser: Browser): Promise<Page> {
   const { defaultBrowserType: _ignored, ...ipad } = devices['iPad Pro 11 landscape'];
-  const ctx = await browser.newContext({ ...ipad, deviceScaleFactor: 1, baseURL: 'http://127.0.0.1:5173' });
+  const ctx = await browser.newContext({ ...ipad, deviceScaleFactor: 1, baseURL: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:5173' });
   return ctx.newPage();
 }

@@ -244,8 +244,30 @@ export function resolveCarPair(a: CarState, b: CarState): boolean {
   return touched;
 }
 
-/** Index of a spawn point not within `clearance` meters of any occupied position (or the least crowded). */
-export function chooseSpawn(world: WorldMap, occupied: { x: number; z: number }[], clearance = 8, offset = 0): number {
+/**
+ * Index of a spawn point not within `clearance` meters of any occupied position (or the least
+ * crowded). With `near` (e.g. the friend you joined), the free spawn closest to it wins.
+ */
+export function chooseSpawn(
+  world: WorldMap,
+  occupied: { x: number; z: number }[],
+  clearance = 8,
+  offset = 0,
+  near?: { x: number; z: number },
+): number {
+  const isFree = (sp: { x: number; z: number }) => occupied.every((o) => Math.hypot(o.x - sp.x, o.z - sp.z) >= clearance);
+  if (near) {
+    let bestNear = -1;
+    let bestNearDist = Infinity;
+    world.spawns.forEach((sp, i) => {
+      const d = Math.hypot(sp.x - near.x, sp.z - near.z);
+      if (d < bestNearDist && isFree(sp)) {
+        bestNear = i;
+        bestNearDist = d;
+      }
+    });
+    if (bestNear >= 0) return bestNear;
+  }
   let best = 0;
   let bestDist = -1;
   const count = world.spawns.length;

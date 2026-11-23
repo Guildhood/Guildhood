@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, database, server, and iPad-emulation tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (shared simulation, client logic, wording guard)
+        run: npm run test:unit
+
+      - name: Start local Supabase (Postgres, Auth, Data API, Realtime, mail catcher)
+        run: npx supabase start -x storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Write local connection settings
+        run: npm run env:local
+
+      - name: Database, access policy, and Realtime tests
+        run: npm run test:db
+
+      - name: Game server integration tests
+        run: npm run test:server
+        env:
+          LOG_LEVEL: warn
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Two-iPad end-to-end tests (emulated iPads, real stack)
+        run: npm run test:e2e -- --trace off
+        env:
+          CI: '1'
+
+      - name: Upload Playwright results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: apps/client/test-results
+          retention-days: 7
+
+  server-image:
+    name: Game server container builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f apps/server/Dockerfile -t guildhood-game .
+      - name: Container starts and reports healthy configuration errors cleanly
+        run: |
+          # Without Supabase settings the server must refuse to start with a clear message.
+          out=$(docker run --rm guildhood-game 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -q "Missing required environment variable SUPABASE_URL"

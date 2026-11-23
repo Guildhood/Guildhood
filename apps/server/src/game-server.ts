@@ -382,7 +382,7 @@ export class GameServer {
     if (target.isFull) throw new JoinRejected('instance_full', 'That session is full');
     if (again) this.removeSeat(again.instance, uid, 'moved');
 
-    const seat = target.addSeat(uid, info, spec, player.friendIds, conn.adapter);
+    const seat = target.addSeat(uid, info, spec, player.friendIds, conn.adapter, msg.join.mode === 'friend' ? msg.join.friendId : undefined);
     this.seatsByUser.set(uid, { instance: target, seat });
     this.bind(conn, target, seat, verified);
     this.sendWelcome(conn, target, seat, false);

@@ -24,6 +24,24 @@ test.describe('one iPad', () => {
     await expect(page.getByTestId('swatch-4')).toHaveAttribute('aria-checked', 'true');
   });
 
+  test('background refreshes keep a half-typed friend code and an open sheet', async ({ page }) => {
+    await signIn(page, 'typing');
+    const field = page.getByTestId('add-friend-code');
+    await field.fill('ABCD');
+    await page.getByTestId('swatch-2').tap(); // re-renders the garage and top bar
+    await expect(page.getByTestId('swatch-2')).toHaveAttribute('aria-checked', 'true');
+    await expect(field).toHaveValue('ABCD');
+    // A background refresh (here: the app returning to the foreground) while a sheet is open.
+    await page.getByTestId('display-name').tap();
+    await page.getByTestId('rename-input').fill('Half Typed');
+    const refreshed = page.waitForResponse((r) => r.url().includes('get_social_overview'));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await refreshed;
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId('rename-input')).toHaveValue('Half Typed');
+    await expect(field).toHaveValue('ABCD');
+  });
+
   test('drives with two-finger touch controls under server authority', async ({ page }) => {
     await signIn(page, 'drive');
     await page.getByTestId('drive').tap();

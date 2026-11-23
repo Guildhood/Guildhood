@@ -94,6 +94,16 @@ describe('LiveInstance', () => {
     expect(JSON.parse(sent[1]!.at(-1)!).ack).toBe(3);
   });
 
+  it('spawns a joining friend next to the friend they joined', () => {
+    const { inst, seats } = setup(3);
+    const host = seats[2]!;
+    const conn: SeatConnection = { send: () => {}, bufferedAmount: 0 };
+    const joiner = inst.addSeat('friend', { id: 'friend', name: 'F', model: 'sprout_hatch', color: 1 }, spec, new Set(['p2']), conn, 'p2');
+    const d = Math.hypot(joiner.car.x - host.car.x, joiner.car.z - host.car.z);
+    expect(d).toBeGreaterThanOrEqual(8);
+    expect(d).toBeLessThan(40);
+  });
+
   it('spawns players apart from each other', () => {
     const { seats } = setup(4);
     for (let i = 0; i < seats.length; i++)

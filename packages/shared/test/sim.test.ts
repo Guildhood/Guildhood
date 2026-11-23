@@ -160,6 +160,18 @@ describe('car-to-car collisions', () => {
 });
 
 describe('spawning', () => {
+  it('spawns next to the friend you joined when there is room', () => {
+    const friend = { x: 70, z: 20 };
+    const i = chooseSpawn(world, [friend], 8, 0, friend);
+    const sp = world.spawns[i]!;
+    const d = Math.hypot(sp.x - friend.x, sp.z - friend.z);
+    expect(d).toBeGreaterThanOrEqual(8);
+    for (const other of world.spawns) {
+      const od = Math.hypot(other.x - friend.x, other.z - friend.z);
+      if (od >= 8) expect(od).toBeGreaterThanOrEqual(d);
+    }
+  });
+
   it('picks a spawn away from occupied positions', () => {
     const first = chooseSpawn(world, []);
     const sp = world.spawns[first]!;

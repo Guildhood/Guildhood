@@ -75,20 +75,36 @@ export class HomeScreen implements Screen {
   private poll: number | null = null;
   private refreshTimer: number | null = null;
   private disposed = false;
+  // Persistent parts: background refreshes (Realtime, polling) must never wipe what the player is
+  // typing or close an open sheet, so only the read-only sections are rebuilt.
+  private topbar: HTMLElement = h('div');
+  private leftCol: HTMLElement = h('div', { class: 'col' });
+  private readonly friendsList = h('div', { class: 'list scroll' });
+  private readonly friendsPanel: HTMLElement;
+  private readonly overlay = h('div');
+  private structured = false;
 
   constructor(private readonly ctx: HomeContext) {
     this.el = h('div', { class: 'home', 'data-testid': 'home' }, h('div', { class: 'muted', text: 'Loading…' }));
+    this.friendsPanel = this.buildFriendsPanel();
   }
+
+  /** Returning to the app (iPad wakes, app switcher) refreshes friends' status right away. */
+  private readonly onVisible = () => {
+    if (document.visibilityState === 'visible') void this.refreshSocial();
+  };
 
   mounted(): void {
     void this.load();
     this.subscribe();
     this.poll = window.setInterval(() => void this.refreshSocial(), 15_000);
+    document.addEventListener('visibilitychange', this.onVisible);
     void this.showRecentInvites();
   }
 
   unmount(): void {
     this.disposed = true;
+    document.removeEventListener('visibilitychange', this.onVisible);
     if (this.poll !== null) window.clearInterval(this.poll);
     if (this.refreshTimer !== null) window.clearTimeout(this.refreshTimer);
     if (this.channel) void this.ctx.supabase.removeChannel(this.channel);
@@ -189,6 +205,7 @@ export class HomeScreen implements Screen {
   }
 
   private renderError(message: string): void {
+    this.structured = false;
     clear(this.el);
     this.el.append(
       h(
@@ -202,7 +219,6 @@ export class HomeScreen implements Screen {
   private render(): void {
     const d = this.data;
     if (!d) return;
-    clear(this.el);
     const friendsDriving = d.social.friends.filter((f) => f.online).length;
     const activeCar = d.cars.find((c) => c.id === d.activeVehicleId) ?? d.cars[0];
 
@@ -268,13 +284,21 @@ export class HomeScreen implements Screen {
       garage.append(h('p', { class: 'muted', text: 'You don’t own a car yet.' }));
     }
 
-    this.el.append(
-      topbar,
-      h('div', { class: 'home-grid' }, h('div', { class: 'col' }, hood, garage), h('div', { class: 'col' }, this.friendsPanel(d.social))),
-    );
+    const left = h('div', { class: 'col' }, hood, garage);
+    if (!this.structured) {
+      this.el.replaceChildren(topbar, h('div', { class: 'home-grid' }, left, h('div', { class: 'col' }, this.friendsPanel)), this.overlay);
+      this.structured = true;
+    } else {
+      this.topbar.replaceWith(topbar);
+      this.leftCol.replaceWith(left);
+    }
+    this.topbar = topbar;
+    this.leftCol = left;
+    this.renderFriends(d.social);
   }
 
-  private friendsPanel(s: Social): HTMLElement {
+  /** Built once: the friend-code field keeps its text and focus across refreshes. */
+  private buildFriendsPanel(): HTMLElement {
     const codeInput = h('input', {
       type: 'text',
       autocapitalize: 'characters',
@@ -314,7 +338,12 @@ export class HomeScreen implements Screen {
       },
     });
 
-    const list = h('div', { class: 'list scroll' });
+    return h('div', { class: 'panel grow' }, h('h2', { text: 'Friends' }), h('div', { class: 'row' }, codeInput, add), error, this.friendsList);
+  }
+
+  private renderFriends(s: Social): void {
+    const list = this.friendsList;
+    clear(list);
     for (const r of s.incoming) {
       list.append(
         h(
@@ -364,8 +393,6 @@ export class HomeScreen implements Screen {
     if (!list.children.length) {
       list.append(h('p', { class: 'muted', text: 'No friends yet. Share your friend code, or add a friend’s code above.' }));
     }
-
-    return h('div', { class: 'panel grow' }, h('h2', { text: 'Friends' }), h('div', { class: 'row' }, codeInput, add), error, list);
   }
 
   private async respond(requestId: string, accept: boolean): Promise<void> {
@@ -426,7 +453,7 @@ export class HomeScreen implements Screen {
         h('div', { class: 'row' }, h('button', { type: 'button', class: 'secondary grow', text: 'Cancel', onClick: close }), h('button', { type: 'submit', class: 'grow', text: 'Save', 'data-testid': 'rename-save' })),
       ),
     );
-    this.el.append(backdrop);
+    this.overlay.append(backdrop);
     setTimeout(() => input.focus(), 50);
   }
 }

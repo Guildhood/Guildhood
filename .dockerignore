@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+.git
+.local
+supabase/.temp
+test-results
+apps/client/test-results

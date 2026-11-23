@@ -97,9 +97,12 @@ export class LiveInstance {
     return false;
   }
 
-  addSeat(userId: string, info: PlayerInfo, spec: VehicleSpec, friendIds: Set<string>, conn: SeatConnection): Seat {
+  addSeat(userId: string, info: PlayerInfo, spec: VehicleSpec, friendIds: Set<string>, conn: SeatConnection, nearUserId?: string): Seat {
     const occupied = [...this.seats.values()].map((s) => s.car);
-    const spawnIndex = chooseSpawn(this.world, occupied, 8, this.spawnCursor++);
+    // Drive together: start next to the friend you joined (or any friend already here).
+    const anchor =
+      (nearUserId ? this.seats.get(nearUserId) : undefined) ?? [...this.seats.values()].find((s) => friendIds.has(s.userId));
+    const spawnIndex = chooseSpawn(this.world, occupied, 8, this.spawnCursor++, anchor?.car);
     const seat: Seat = {
       userId,
       info,

@@ -1,0 +1,55 @@
+name: Deploy client to GitHub Pages
+
+# Publishes the iPad web client to https://<owner>.github.io/<repo>/.
+# One-time setup: Settings -> Pages -> Source: "GitHub Actions".
+# The build connects to cloud services only if these repository variables are set
+# (Settings -> Secrets and variables -> Actions -> Variables). They are public by nature:
+#   VITE_SUPABASE_URL              e.g. https://abcd1234.supabase.co
+#   VITE_SUPABASE_PUBLISHABLE_KEY  the project's publishable (anon) key
+#   VITE_GAME_SERVER_URL           e.g. wss://guildhood-game.fly.dev/game
+# Without them the page loads and states that it is not connected to a game server.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build client
+        run: npx vite build --config apps/client/vite.config.ts
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_GAME_SERVER_URL: ${{ vars.VITE_GAME_SERVER_URL }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: apps/client/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
