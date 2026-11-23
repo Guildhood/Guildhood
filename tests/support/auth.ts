@@ -2,18 +2,21 @@ import { randomUUID } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { localEnv } from './env.ts';
 
-/** Reads the newest sign-in code sent to `email` from the local Mailpit inbox. */
-export async function readSignInCode(email: string, since: number, timeoutMs = 15_000): Promise<string> {
+/**
+ * Reads the newest sign-in code sent to `email` from the local Mailpit inbox. Uses the plain
+ * message list (not the search index, which can lag right after the stack starts).
+ */
+export async function readSignInCode(email: string, since: number, timeoutMs = 45_000): Promise<string> {
   const { MAILPIT_URL } = localEnv();
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const res = await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`);
-    if (res.ok) {
-      const body = (await res.json()) as { messages: { Created: string; Snippet: string }[] };
-      const fresh = body.messages
-        .filter((m) => Date.parse(m.Created) >= since - 2000)
-        .sort((a, b) => Date.parse(b.Created) - Date.parse(a.Created));
-      const code = fresh[0]?.Snippet.match(/\b(\d{6})\b/)?.[1];
+    const res = await fetch(`${MAILPIT_URL}/api/v1/messages?limit=200`).catch(() => null);
+    if (res?.ok) {
+      const body = (await res.json()) as { messages: { Created: string; Snippet: string; To: { Address: string }[] }[] };
+      const code = body.messages
+        .filter((m) => m.To.some((t) => t.Address.toLowerCase() === email.toLowerCase()) && Date.parse(m.Created) >= since - 5000)
+        .sort((a, b) => Date.parse(b.Created) - Date.parse(a.Created))[0]
+        ?.Snippet.match(/\b(\d{6})\b/)?.[1];
       if (code) return code;
     }
     await new Promise((r) => setTimeout(r, 250));

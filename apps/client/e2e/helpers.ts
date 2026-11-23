@@ -5,11 +5,16 @@ import type { DriveDebug } from '../src/ui/drive.ts';
 const { MAILPIT_URL } = readLocalSupabase();
 
 async function codeFor(email: string, since: number): Promise<string> {
-  for (let i = 0; i < 80; i++) {
-    const res = await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`);
-    const body = (await res.json()) as { messages: { Created: string; Snippet: string }[] };
-    const code = body.messages.find((m) => Date.parse(m.Created) >= since - 2000)?.Snippet.match(/\b(\d{6})\b/)?.[1];
-    if (code) return code;
+  for (let i = 0; i < 180; i++) {
+    const res = await fetch(`${MAILPIT_URL}/api/v1/messages?limit=200`).catch(() => null);
+    if (res?.ok) {
+      const body = (await res.json()) as { messages: { Created: string; Snippet: string; To: { Address: string }[] }[] };
+      const code = body.messages
+        .filter((m) => m.To.some((t) => t.Address.toLowerCase() === email.toLowerCase()) && Date.parse(m.Created) >= since - 5000)
+        .sort((a, b) => Date.parse(b.Created) - Date.parse(a.Created))[0]
+        ?.Snippet.match(/\b(\d{6})\b/)?.[1];
+      if (code) return code;
+    }
     await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error(`No sign-in code for ${email}`);

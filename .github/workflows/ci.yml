@@ -38,6 +38,9 @@ jobs:
       - name: Write local connection settings
         run: npm run env:local
 
+      - name: Wait until Auth, email delivery, and Realtime are ready
+        run: node scripts/wait-for-supabase.mjs
+
       - name: Database, access policy, and Realtime tests
         run: npm run test:db
 
