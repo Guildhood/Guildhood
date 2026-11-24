@@ -17,7 +17,7 @@ export class NotConfiguredScreen implements Screen {
       }),
       h('p', {
         class: 'muted',
-        text: 'If you run this deployment: set VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY and VITE_GAME_SERVER_URL as repository variables and redeploy. For local Wi-Fi play, see docs/RUNNING.md.',
+        text: 'If you run this deployment: set VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY and VITE_GAME_SERVER_URL as repository variables and redeploy. For local Wi-Fi play, see docs/deployment.md.',
       }),
     ),
   );

@@ -1,6 +1,6 @@
-# Running Guildhood
+# Running and deploying Guildhood
 
-Phase 1 runs entirely on one computer on your Wi-Fi. That computer hosts the database and accounts
+Guildhood currently runs entirely on one computer on your Wi-Fi. That computer hosts the database and accounts
 (local Supabase in Docker), the authoritative game server, and the web client. The iPads only need
 Safari and the address the computer prints.
 
@@ -40,14 +40,18 @@ npm run lan
   Sign-in emails:   http://127.0.0.1:54324 (codes are also printed below)
 ```
 
-1. On each iPad, open **Safari** and go to the "On your iPads" address. Hold the iPad in landscape.
-2. Sign in with **any** email address (for example `ada@example.com` on one iPad and
-   `bo@example.com` on the other). Nothing is emailed: the 6-digit code appears in the terminal as
-   `✉  Sign-in code for ada@example.com: 123456` (and in the mail viewer at
-   `http://127.0.0.1:54324` on the computer).
-3. Optional, for full screen: Safari **Share → Add to Home Screen**, then open Guildhood from the
-   new icon.
-4. Follow [IPAD-TEST-PLAN.md](IPAD-TEST-PLAN.md) and record the results there.
+1. On each iPad, open **Safari** and go to the "On your iPads" address (prefer the `.local` one:
+   email links only work there; the numeric address works with the 6-digit codes). Hold the iPad
+   in landscape.
+2. **Create account** with **any** email address (for example `ada@example.com` on one iPad and
+   `bo@example.com` on the other) and a password (8+ characters, letters and numbers). Nothing is
+   really emailed: the confirmation code appears in the terminal as
+   `✉  Email confirmation code for ada@example.com: 123456`, and every email is viewable at
+   `http://127.0.0.1:54324` on the computer.
+3. Choose a username, display name, and avatar.
+4. Optional, for full screen: Safari **Share → Add to Home Screen**, then open Guildhood from the
+   new icon. (The Home Screen app has its own sign-in, separate from Safari.)
+5. Follow [testing-plan.md](testing-plan.md) and record the results there.
 
 If macOS asks whether **node** may accept incoming network connections, choose **Allow**. Only port
 5173 needs to be reachable: the web server forwards account, database, Realtime, and game traffic
@@ -56,6 +60,10 @@ to services that stay private to the computer.
 Stop with **Ctrl+C**. Stop the database with `npx supabase stop` (data is kept) or wipe all players
 with `npx supabase db reset` (then run `npm run wait:supabase` before playing or testing).
 
+Database migrations: `npx supabase start` applies `supabase/migrations/` to a new local database;
+after pulling new migrations run `npx supabase db reset` (local data is wiped) or
+`npx supabase migration up` (keeps data).
+
 ### Troubleshooting
 
 | Symptom | Fix |
@@ -63,7 +71,9 @@ with `npx supabase db reset` (then run `npm run wait:supabase` before playing or
 | `Local Supabase is not running` | Start Docker Desktop, then `npx supabase start`. |
 | iPad can't open the address | Same Wi-Fi? Not a guest network? Firewall allowed **node**? Try the other printed address. |
 | "Can't reach the game server" on the iPad | The terminal running `npm run lan` was stopped; start it again. |
-| No sign-in code in the terminal | Open `http://127.0.0.1:54324` on the computer; check the email address you typed. |
+| No code in the terminal | Open `http://127.0.0.1:54324` on the computer; check the email address you typed. |
+| Email link opens but nothing happens | Open Guildhood at the `.local` address, or type the 6-digit code instead. |
+| "Delete account" fails locally after editing the function | `docker restart supabase_edge_runtime_guildhood` |
 | "Please wait a moment before asking for another code" | Codes can be requested about once per second per address. |
 | Friend's status takes a few seconds | Realtime pushes updates; a 15-second refresh is the fallback. |
 
@@ -83,7 +93,7 @@ npx supabase start
 npm run env:local        # writes .env.local with the local stack's URLs and keys
 npm run wait:supabase    # waits until Auth, email delivery, and Realtime actually work
 npm run typecheck
-npm test                 # unit + database/access-policy/Realtime + game server integration
+npm test                 # unit + database/access-policy/Auth/Realtime/deletion + game server
 npx playwright install chromium   # once, if Playwright's Chromium is not installed
 npm run test:e2e         # emulated iPads (touch, iPad viewport) against the real stack
 ```
@@ -115,10 +125,13 @@ Phase 1 was verified only on the local stack. These steps are the intended produ
 have not been run, so treat them as a checklist for a later phase rather than tested instructions.
 
 1. **Supabase Cloud**: create a project, then `npx supabase link --project-ref <ref>` and
-   `npx supabase db push` to apply `supabase/migrations`. In Auth settings: set the site URL to the
-   GitHub Pages address, configure custom SMTP (the built-in sender allows only a few emails per
-   hour), and make sure the Magic Link and Confirm Signup templates show `{{ .Token }}` (copy
-   `supabase/templates/sign_in_code.html`; `supabase/config.toml` templates apply to the local stack).
+   `npx supabase db push` to apply `supabase/migrations`. Configure Auth exactly as listed in
+   [authentication.md](authentication.md#required-supabase-auth-settings): confirmations on,
+   password rules, redirect allow list (`https://<owner>.github.io/Guildhood/**`), site URL,
+   custom SMTP, and the three email templates from `supabase/templates/`. Deploy account deletion:
+   `npx supabase functions deploy delete-account --no-verify-jwt` and
+   `npx supabase secrets set GUILDHOOD_ALLOWED_ORIGINS=https://<owner>.github.io GUILDHOOD_ENVIRONMENT=production`.
+   Use a separate project for staging with its own redirect URL.
 2. **Game server** on Fly.io (one machine; live sessions are in memory):
    `fly launch --no-deploy -c apps/server/fly.toml`, set secrets
    (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `ALLOWED_ORIGINS`), then

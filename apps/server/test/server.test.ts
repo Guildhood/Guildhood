@@ -433,6 +433,8 @@ describe('account eligibility (Phase 2)', () => {
   });
 
   it('never writes access tokens to its logs', async () => {
+    const previousLevel = process.env.LOG_LEVEL;
+    process.env.LOG_LEVEL = 'debug'; // check every line the server can write
     const lines: string[] = [];
     const spies = [vi.spyOn(console, 'log'), vi.spyOn(console, 'error')].map((spy) =>
       spy.mockImplementation((...args: unknown[]) => void lines.push(args.map(String).join(' '))),
@@ -447,6 +449,7 @@ describe('account eligibility (Phase 2)', () => {
       await A.c.closed;
     } finally {
       for (const spy of spies) spy.mockRestore();
+      process.env.LOG_LEVEL = previousLevel;
     }
     const all = lines.join('\n');
     expect(all.length).toBeGreaterThan(0);

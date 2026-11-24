@@ -62,7 +62,11 @@ test.describe('registration and verification', () => {
     await cold.context().close();
   });
 
-  test('a link opened in another tab signs in the tab that was waiting', async ({ page, context }) => {
+  test('a link opened in another tab signs in the tab that was waiting', async ({ page, context, baseURL }) => {
+    // Supabase Auth refuses IP-address redirect hosts, so at a numeric LAN address the link lands on
+    // the configured site URL (another origin, separate storage) and cannot sign in this tab. That
+    // is the documented Wi-Fi limitation (docs/authentication.md); the 6-digit code covers it.
+    test.skip(/^https?:\/\/(?!127\.0\.0\.1)\d+\.\d+\.\d+\.\d+/.test(baseURL ?? ''), 'links cannot return to an IP-address host');
     const { email, since } = await startRegistration(page, 'twotabs');
     const link = (await readEmail(email, since)).link!;
     const other = await context.newPage();
@@ -142,6 +146,15 @@ test.describe('sign-in and sessions', () => {
     await expect(page.getByTestId('session-expired')).toBeVisible();
     expect(await page.content()).not.toContain(email);
     expect(await storedSession(page)).toBeNull();
+    // Signing in again from that screen: a mistake keeps the screen and the message.
+    await page.getByLabel('Email', { exact: true }).fill(email);
+    await page.getByLabel('Password', { exact: true }).fill('Wrongpass999');
+    await page.getByTestId('sign-in-submit').tap();
+    await expect(page.getByTestId('form-error')).toContainText('don’t match');
+    await expect(page.getByLabel('Email', { exact: true })).toHaveValue(email);
+    await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+    await page.getByTestId('sign-in-submit').tap();
+    await expect(page.getByTestId('home')).toBeVisible();
   });
 });
 

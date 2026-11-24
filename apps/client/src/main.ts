@@ -111,11 +111,15 @@ class App {
       }
       case 'AWAITING_VERIFICATION':
         this.authRoute = 'welcome';
+        this.readyRoute = { name: 'home' };
         return this.show(`auth:verify:${s.email}`, () => new VerifyEmailScreen(m, this.nav, s.email, Date.now()));
       case 'SESSION_EXPIRED':
         this.authRoute = 'sign-in';
+        this.readyRoute = { name: 'home' }; // whoever signs in next starts at home
+        this.restrictedDeleting = false;
         return this.show('auth:expired', () => new SignInScreen(m, this.nav, { expired: true }));
       case 'RECOVERY_IN_PROGRESS':
+        this.readyRoute = { name: 'home' };
         return this.show(`auth:reset:${s.user.id}`, () => new ResetPasswordScreen(m, s.user.email));
       case 'ERROR':
         return this.show(`error:${s.code}`, () => new BackendErrorScreen(m, s.code), true);

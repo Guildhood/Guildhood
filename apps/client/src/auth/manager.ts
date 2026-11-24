@@ -430,6 +430,7 @@ export class AuthManager {
 
   signIn(email: string, password: string): Promise<Result> {
     return this.guarded(async () => {
+      const previous = this.state;
       this.set({ kind: 'AUTHENTICATING' });
       const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
       if (error || !data.user) {
@@ -439,7 +440,9 @@ export class AuthManager {
           this.set({ kind: 'AWAITING_VERIFICATION', email });
         } else {
           if (code === 'network') this.setConnectivity('unreachable');
-          this.set({ kind: 'SIGNED_OUT' });
+          // Stay on the screen the player used (e.g. "session ended, sign in again") so the error
+          // and what they typed remain.
+          this.set(previous.kind === 'SESSION_EXPIRED' ? previous : { kind: 'SIGNED_OUT' });
         }
         return { ok: false, code };
       }

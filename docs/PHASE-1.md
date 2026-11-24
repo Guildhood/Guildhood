@@ -17,7 +17,7 @@ earning money, and preserving ownership work reliably on iPad.
 | Game server | One Node 22 process; Docker image; Fly.io config | Authoritative 30 Hz simulation shared with client prediction (`packages/shared`). |
 | Backend | Supabase: Auth (email code), Postgres with row level security, Realtime | Local stack (Supabase CLI) for Phase 1. |
 
-Details: [ARCHITECTURE.md](ARCHITECTURE.md).
+Details: [architecture.md](architecture.md).
 
 ## Feature status
 
@@ -51,7 +51,7 @@ on physical iPads yet** (last column).
 | Home Screen app (manifest, icons, full screen) | Partial | Manifest and meta tags present; over plain `http` there is no service worker or offline mode | Not yet tested |
 | Game server container | Working | Built by CI on GitHub; production runtime verified locally | n/a |
 | GitHub Pages deployment of the client | Partial: workflow ready, not deployed | Pages is not enabled and there is no cloud backend; a Pages build says it is not connected | n/a |
-| Cloud deployment (Supabase Cloud, Fly.io) | Deferred | Config and steps prepared in [RUNNING.md](RUNNING.md), not run | n/a |
+| Cloud deployment (Supabase Cloud, Fly.io) | Deferred | Config and steps prepared in [deployment.md](deployment.md), not run | n/a |
 | Racing, race results | Deferred (Phase 2) | | |
 | Earning Marks | Deferred (Phase 2) | | |
 | Shop and purchases | Deferred (Phase 3) | | |

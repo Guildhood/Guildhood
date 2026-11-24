@@ -1,4 +1,4 @@
-# Guildhood architecture (Phase 1)
+# Guildhood architecture
 
 ```
  iPad Safari (web client)                        Host computer / cloud
@@ -11,14 +11,15 @@
                 │ https: Auth, Data API, Realtime                │ secret key: server-only RPCs
                 ▼                                                 ▼
  ┌──────────────────────────────────────────────────────────────────────────────────┐
- │ Supabase: Auth (email code) · Postgres + row level security · Realtime           │
- │ profiles · friends · persistent neighborhoods · owned cars · Marks ledger        │
- │ live-instance registry + presence (written only by the game server)              │
+ │ Supabase: Auth (email + password) · Postgres + RLS · Realtime · Edge Functions   │
+ │ profiles · private settings · restrictions · audit · friends · neighborhoods     │
+ │ owned cars · Marks ledger · live-instance registry + presence                    │
+ │ delete-account function (service role; the only place accounts are deleted)      │
  └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 In development and the Wi-Fi test, the client's web server (Vite) also proxies `/auth/v1`,
-`/rest/v1`, `/realtime/v1`, and `/game`, so the iPads talk to a single origin and only port 5173 is
+`/rest/v1`, `/realtime/v1`, `/functions/v1`, and `/game`, so the iPads talk to a single origin and only port 5173 is
 exposed. In production the client would use the Supabase project URL and a `wss://` game server URL.
 
 ## Code layout
@@ -27,7 +28,8 @@ exposed. In production the client would use the Supabase project URL and a `wss:
 |---|---|
 | `packages/shared` | Code the server and client both run: vehicle simulation, map layouts, wire protocol and validation, constants. |
 | `apps/server` | Authoritative game server (`game-server.ts` connections/joining, `instance.ts` per-instance simulation, `auth.ts` token verification, `backend.ts` database RPCs). |
-| `apps/client` | Web client (`src/game/*` netcode, controls, rendering; `src/ui/*` screens). |
+| `apps/client` | Web client (`src/auth/*` session state machine and email links; `src/game/*` netcode, controls, rendering; `src/ui/*` screens). |
+| `supabase/functions/delete-account` | Trusted account deletion (Deno Edge Function). |
 | `supabase/migrations` | Versioned schema, access policies, and database functions. |
 | `tests/db` | Database, access policy, idempotency, and Realtime tests against the real local stack. |
 
@@ -103,3 +105,16 @@ concurrent replays and concurrent debits to prove single application and no over
 | Session full, ended, friend offline, not a friend | Client shows the reason and offers "Drive anyway" (auto-join). No automatic retry. |
 | Malformed or flooding client | Closed with `bad_message` / `rate_limited`. |
 | Graphics reset by iPadOS (WebGL context lost) | Shows a message to go back and drive again. |
+
+## Accounts and profiles (Phase 2)
+
+- **Authentication:** Supabase Auth, email + password, verification required, password recovery.
+  One `AuthManager` in the client owns the session and exposes explicit states; connectivity is a
+  separate signal. Details: [authentication.md](authentication.md).
+- **Profiles:** created by the signup trigger (single provisioning path) and completed in
+  onboarding through validated functions. Rows are owner-only; others see projections. Details:
+  [database-schema.md](database-schema.md), [security.md](security.md).
+- **Game server handshake:** verifies the token, derives the player id from it, then checks
+  eligibility in the database (profile complete, not restricted); re-checks connected players.
+- **Deletion:** the `delete-account` Edge Function. Details: [account-deletion.md](account-deletion.md).
+- **iPad input:** [ipad-input.md](ipad-input.md).

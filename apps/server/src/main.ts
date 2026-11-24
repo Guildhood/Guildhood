@@ -8,7 +8,7 @@ import { log } from './log.ts';
 function required(name: string): string {
   const v = process.env[name];
   if (!v) {
-    console.error(`Missing required environment variable ${name}. See docs/RUNNING.md.`);
+    console.error(`Missing required environment variable ${name}. See docs/deployment.md.`);
     process.exit(1);
   }
   return v;

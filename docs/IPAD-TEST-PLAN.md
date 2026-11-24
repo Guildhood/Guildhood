@@ -1,18 +1,18 @@
 # Phase 1 two-iPad manual test
 
-**Status: not yet run on physical iPads.** The same flows pass automatically in emulated iPads
+**Status: not yet run on physical iPads.** (Updated for Phase 2: accounts now use email + password.) The same flows pass automatically in emulated iPads
 (Chromium with iPad Pro 11 viewport and real touch events), both on `localhost` and over a
 non-localhost address the way iPads reach the computer. Safari on real iPads has not been exercised:
 fill in the results table below when you run it.
 
-Setup: follow [RUNNING.md](RUNNING.md) → "Two-iPad test". You need iPad **A** and iPad **B** on the
+Setup: follow [deployment.md](deployment.md) → "Two-iPad test". You need iPad **A** and iPad **B** on the
 same Wi-Fi as the computer running `npm run lan`. Use two different email addresses.
 
 | # | Steps | Expected result |
 |---|---|---|
 | 1 | Open the printed address on both iPads in Safari. Rotate iPad A to portrait, then back. | Portrait shows "Turn your iPad sideways to play Guildhood."; landscape removes it. |
-| 2 | Sign in on A (`ada@example.com`) and B (`bo@example.com`) with the codes from the terminal. | Each lands on the home screen: **500 Marks**, **Sprout Hatch** in the garage, a friend code like `ABCD-2345`, neighborhood **Copperleaf Commons**. |
-| 3 | On A: tap the name chip, rename to `Ada`, Save. Tap a different paint swatch. Close the Safari tab, reopen the address. | Still signed in; name and paint color kept. |
+| 2 | On A and B: **Create account** (`ada@example.com`, `bo@example.com`, any 8+ character password with letters and numbers), confirm with the code printed in the terminal, then choose a username, display name, and avatar. | Each lands on the home screen: avatar, display name, and @username at the top, **500 Marks**, **Sprout Hatch** in the garage, a friend code like `ABCD-2345`, neighborhood **Copperleaf Commons**. |
+| 3 | On A: tap the name chip (Profile), change the display name to `Ada`, Save, Back. Tap a different paint swatch. Close the Safari tab, reopen the address. | Still signed in; name and paint color kept. |
 | 4 | On B: type A's friend code in **Friends → Friend code**, tap **Add**. Watch A without touching it. | Within ~2 s A shows a toast "… sent you a friend request" and an **Accept** button, with no reload. |
 | 5 | On A: tap **Accept**. | B's list shows A within ~2 s. |
 | 6 | On A: tap **Drive**. | 3D neighborhood appears. Leave, ping, neighborhood name, and Invite sit inside the screen edges (not under rounded corners or the camera). Steering pad bottom-left; BRAKE and GO bottom-right. |
@@ -26,7 +26,7 @@ same Wi-Fi as the computer running `npm run lan`. Use two different email addres
 | 14 | On B while driving: go to the Home Screen for ~10 s, then return to Guildhood. | Reconnects automatically into the same session. |
 | 15 | On the computer: Ctrl+C, then `npm run lan` again. | Both iPads show "Reconnecting…", then rejoin a new session. Marks, names, and cars are unchanged. |
 | 16 | Sign into Bo's account on a third screen (or a second Safari tab) and tap Drive. | The first screen shows "You started driving on another screen"; only one Bo car exists. |
-| 17 | On A: **Leave**, **Sign out**, sign in again with the same email. | Same name, 500 Marks, same car and color. |
+| 17 | On A: **Leave**, **Sign out**, **Sign in** again with the same email and password. | Same name, 500 Marks, same car and color. |
 
 ## Results
 
