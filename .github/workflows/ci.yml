@@ -32,8 +32,8 @@ jobs:
       - name: Unit tests (shared simulation, client logic, wording guard)
         run: npm run test:unit
 
-      - name: Start local Supabase (Postgres, Auth, Data API, Realtime, mail catcher)
-        run: npx supabase start -x storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Start local Supabase (Postgres, Auth, Data API, Realtime, Edge Functions, mail catcher)
+        run: npx supabase start -x storage-api,imgproxy,postgres-meta,studio,logflare,vector,supavisor
 
       - name: Write local connection settings
         run: npm run env:local

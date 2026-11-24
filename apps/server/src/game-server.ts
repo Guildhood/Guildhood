@@ -43,6 +43,8 @@ export interface GameServerOptions {
   reapEveryMs?: number;
   tokenCheckMs?: number;
   keepaliveMs?: number;
+  /** How often connected players' accounts are re-checked (deleted, restricted). */
+  eligibilityCheckMs?: number;
   /** Forces a per-instance capacity (tests); otherwise the neighborhood's setting is used. */
   capacityOverride?: number;
   rateLimit?: { perSecond: number; burst: number };
@@ -109,6 +111,7 @@ export class GameServer {
       reapEveryMs: 30_000,
       tokenCheckMs: 1_000,
       keepaliveMs: 10_000,
+      eligibilityCheckMs: 60_000,
       rateLimit: { perSecond: 60, burst: 120 },
       ...options,
     };
@@ -140,6 +143,7 @@ export class GameServer {
     this.timers.push(setInterval(() => void this.reap(), this.opts.reapEveryMs));
     this.timers.push(setInterval(() => this.checkTokens(), this.opts.tokenCheckMs));
     this.timers.push(setInterval(() => this.keepalive(), this.opts.keepaliveMs));
+    this.timers.push(setInterval(() => void this.recheckEligibility(), this.opts.eligibilityCheckMs));
     void this.reap();
     log('info', 'server_started', { serverId: this.serverId, port });
     return port;
@@ -336,6 +340,9 @@ export class GameServer {
     }
     if (conn.closed) return;
     if (!player) throw new JoinRejected('auth_failed', 'No player profile for this account');
+    // Account eligibility: identity comes from the verified token, status from the database.
+    if (player.restriction) throw new JoinRejected('account_restricted', 'This account is restricted');
+    if (!player.onboardingComplete) throw new JoinRejected('profile_incomplete', 'Finish setting up your profile first');
     if (!neighborhood || !neighborhood.isOpen) throw new JoinRejected('neighborhood_closed', 'That neighborhood is not open');
     if (!player.neighborhoodIds.has(neighborhood.id)) throw new JoinRejected('not_member', 'You are not a resident of that neighborhood');
     const spec = player.vehicle ? vehicleSpec(player.vehicle.modelId) : undefined;
@@ -485,7 +492,35 @@ export class GameServer {
       conn.tokenExpiresAt = v.expiresAt;
     } catch (err) {
       this.reject(conn, err instanceof AuthError ? err.code : 'auth_failed', 'Could not refresh sign-in');
+      return;
     }
+    if (conn.userId) await this.enforceEligibility(conn.userId);
+  }
+
+  /**
+   * Removes a seated player whose account was deleted or restricted since they joined. Tokens
+   * stay cryptographically valid until they expire, so the database is the source of truth.
+   * A database outage never removes anyone (fail open for players already admitted).
+   */
+  private async enforceEligibility(userId: string): Promise<void> {
+    let player;
+    try {
+      player = await this.opts.backend.getPlayer(userId);
+    } catch {
+      return;
+    }
+    const code: ErrorCode | null = !player ? 'auth_failed' : player.restriction ? 'account_restricted' : null;
+    if (!code) return;
+    const placement = this.seatsByUser.get(userId);
+    if (placement) this.removeSeat(placement.instance, userId, 'kicked');
+    for (const conn of this.conns) {
+      if (conn.userId === userId) this.reject(conn, code, code === 'auth_failed' ? 'This account no longer exists' : 'This account is restricted');
+    }
+    log('info', 'player_removed_ineligible', { user: userId, code });
+  }
+
+  private async recheckEligibility(): Promise<void> {
+    await Promise.all([...this.seatsByUser.keys()].map((id) => this.enforceEligibility(id)));
   }
 
   private handleLeave(conn: Conn): void {
@@ -498,7 +533,7 @@ export class GameServer {
     }
   }
 
-  private removeSeat(instance: LiveInstance, userId: string, reason: 'left' | 'timeout' | 'moved'): void {
+  private removeSeat(instance: LiveInstance, userId: string, reason: 'left' | 'timeout' | 'moved' | 'kicked'): void {
     const seat = instance.removeSeat(userId, Date.now());
     if (!seat) return;
     if (this.seatsByUser.get(userId)?.seat === seat) this.seatsByUser.delete(userId);

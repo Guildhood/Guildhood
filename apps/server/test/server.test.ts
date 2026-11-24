@@ -1,9 +1,9 @@
 // Integration tests: real game server, real WebSocket clients, real Supabase (Auth, Data API, Postgres).
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { CLOSE_CODES, TICK_DT, VEHICLE_SPECS, WORLDS, stepCar, type CarState } from '@guildhood/shared';
-import { deleteAuthUsers, signInWithEmailCode, type SignedInPlayer } from '../../../tests/support/auth.ts';
-import { POSTGRES, closeDb, one, run } from '../../../tests/support/db.ts';
+import { deleteAuthUsers, registerPlayer, serviceClient, type SignedInPlayer } from '../../../tests/support/auth.ts';
+import { POSTGRES, SERVICE, closeDb, one, run } from '../../../tests/support/db.ts';
 import type { GameServer } from '../src/game-server.ts';
 import { STARTER, TestClient, driveFor, flaky, realBackend, sleep, startServer } from './helpers.ts';
 
@@ -12,7 +12,7 @@ const servers: GameServer[] = [];
 const clients: TestClient[] = [];
 
 async function player(label: string): Promise<SignedInPlayer> {
-  const p = await signInWithEmailCode(label);
+  const p = await registerPlayer(label, { onboard: true });
   players.push(p);
   return p;
 }
@@ -394,5 +394,63 @@ describe('failure handling', () => {
     expect((await A.c.closed).code).toBe(CLOSE_CODES.server_shutdown);
     expect((await one(POSTGRES, 'select status from session_instances where id = $1', [A.welcome.instanceId])).status).toBe('closed');
     expect(await presence(a.userId)).toBeNull();
+  });
+});
+
+describe('account eligibility (Phase 2)', () => {
+  it('refuses players who have not finished their profile', async () => {
+    const { url } = await server();
+    const p = await registerPlayer('elig-a'); // verified, signed in, onboarding not done
+    players.push(p);
+    expect(await rejected(url, p)).toEqual({ code: 'profile_incomplete', close: CLOSE_CODES.profile_incomplete });
+  });
+
+  it('refuses restricted accounts at the handshake', async () => {
+    const { url } = await server();
+    const p = await player('elig-b');
+    await run(SERVICE, `select public.server_add_restriction($1, 'suspended', 'cheating', now() + interval '1 hour', null)`, [p.userId]);
+    expect(await rejected(url, p)).toEqual({ code: 'account_restricted', close: CLOSE_CODES.account_restricted });
+  });
+
+  it('removes a player restricted while driving, and others see them leave', async () => {
+    const { url } = await server({ eligibilityCheckMs: 300 });
+    const a = await player('elig-c');
+    const b = await player('elig-d');
+    await befriend(a, b);
+    const A = await join(url, a);
+    const B = await join(url, b, { mode: 'friend', friendId: a.userId });
+    await run(SERVICE, `select public.server_add_restriction($1, 'banned', 'cheating', null, null)`, [a.userId]);
+    expect((await A.c.closed).code).toBe(CLOSE_CODES.account_restricted);
+    expect((await B.c.waitFor('player_left', (m) => m.id === a.userId)).reason).toBe('kicked');
+  });
+
+  it('removes a player whose account is deleted while driving', async () => {
+    const { url } = await server({ eligibilityCheckMs: 300 });
+    const a = await player('elig-e');
+    const A = await join(url, a);
+    await serviceClient().auth.admin.deleteUser(a.userId);
+    expect((await A.c.closed).code).toBe(CLOSE_CODES.auth_failed);
+  });
+
+  it('never writes access tokens to its logs', async () => {
+    const lines: string[] = [];
+    const spies = [vi.spyOn(console, 'log'), vi.spyOn(console, 'error')].map((spy) =>
+      spy.mockImplementation((...args: unknown[]) => void lines.push(args.map(String).join(' '))),
+    );
+    try {
+      const { url } = await server();
+      const a = await player('elig-f');
+      const A = await join(url, a);
+      A.c.send({ t: 'auth', token: a.accessToken });
+      expect(await rejected(url, 'x'.repeat(64))).toMatchObject({ code: 'auth_failed' });
+      A.c.send({ t: 'leave' });
+      await A.c.closed;
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
+    const all = lines.join('\n');
+    expect(all.length).toBeGreaterThan(0);
+    for (const p of players) expect(all).not.toContain(p.accessToken.split('.')[2]!);
+    expect(all).not.toContain('x'.repeat(64));
   });
 });

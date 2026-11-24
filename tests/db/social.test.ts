@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { POSTGRES, asUser, closeDb, createUser, deleteUsers, failure, one, run, type TestUser } from '../support/db.ts';
+import { POSTGRES, asUser, closeDb, createUser, deleteUsers, failure, one, onboard, run, type TestUser } from '../support/db.ts';
 
 const created: TestUser[] = [];
 async function user(label = 'social') {
@@ -38,9 +38,10 @@ describe('friend requests', () => {
     expect(notes.rows[0]).toMatchObject({ kind: 'friend_request', payload: { from_user: a.id } });
     expect((await run(asUser(a), 'select 1 from notifications where user_id = $1', [b.id])).rowCount).toBe(0);
 
-    // Pending counterparts can see each other's profile; a stranger cannot.
-    expect(await canSeeProfile(a, b)).toBe(true);
-    expect(await canSeeProfile(b, a)).toBe(true);
+    // Since Phase 2, profile rows are owner-only: the request shows the sender's public name via
+    // the social overview, but no one (counterpart or stranger) can read another player's row.
+    expect(await canSeeProfile(a, b)).toBe(false);
+    expect(await canSeeProfile(b, a)).toBe(false);
     expect(await canSeeProfile(c, a)).toBe(false);
 
     expect((await overview(b)).incoming).toMatchObject([{ user_id: a.id, request_id: sent.request_id }]);
@@ -101,14 +102,17 @@ describe('friend requests', () => {
     expect(await canSeeProfile(a, b)).toBe(false);
   });
 
-  it('removing a friend hides their profile again', async () => {
+  it('removing a friend removes them from the friends list and hides a friends-only profile card', async () => {
     const a = await user('a');
     const b = await user('b');
+    await onboard(b, `rm_${b.id.slice(0, 8)}`);
     await send(a, await codeOf(b));
     await send(b, await codeOf(a));
-    expect(await canSeeProfile(a, b)).toBe(true);
+    const card = async () => (await one(asUser(a), 'select public.get_public_profile($1) as p', [`rm_${b.id.slice(0, 8)}`])).p;
+    expect(await card()).toMatchObject({ username: `rm_${b.id.slice(0, 8)}` });
     await run(asUser(a), 'select public.remove_friend($1)', [b.id]);
-    expect(await canSeeProfile(a, b)).toBe(false);
+    expect((await overview(a)).friends).toHaveLength(0);
+    expect(await card()).toBeNull();
     expect(await failure(asUser(a), 'select public.remove_friend($1)', [b.id])).toMatch(/not_friends/);
   });
 

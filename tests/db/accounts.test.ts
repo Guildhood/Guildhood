@@ -115,17 +115,15 @@ describe('row level security: writes', () => {
     );
   });
 
-  it('players can rename themselves within the allowed format, and only themselves', async () => {
+  it('players rename only through the validated profile function, and only themselves', async () => {
     const a = await user('a');
     const b = await user('b');
-    await run(asUser(a), `update profiles set display_name = 'Road Runner 7' where id = $1`, [a.id]);
+    expect(await failure(asUser(a), `update profiles set display_name = 'Road Runner 7' where id = $1`, [a.id])).toMatch(/permission denied/);
+    await run(asUser(a), `select public.update_my_profile('{"display_name": "Road Runner 7"}')`);
     expect((await one(asUser(a), 'select display_name from profiles where id = $1', [a.id])).display_name).toBe('Road Runner 7');
-
-    expect(await failure(asUser(a), `update profiles set display_name = 'x' where id = $1`, [a.id])).toMatch(/profiles_display_name_format/);
-    expect(await failure(asUser(a), `update profiles set display_name = '<script>' where id = $1`, [a.id])).toMatch(/profiles_display_name_format/);
-
-    const r = await run(asUser(a), `update profiles set display_name = 'Hijacked' where id = $1`, [b.id]);
-    expect(r.rowCount).toBe(0);
+    expect(await failure(asUser(a), `select public.update_my_profile('{"display_name": "x"}')`)).toMatch(/display_name_invalid/);
+    // There is no parameter for whose profile to change: b is untouched.
+    expect((await one(POSTGRES, 'select display_name from profiles where id = $1', [b.id])).display_name).toMatch(/^Driver-/);
   });
 
   it('active vehicle must be a car the player owns', async () => {

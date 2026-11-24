@@ -84,7 +84,9 @@ export type ErrorCode =
   | 'replaced'
   | 'rate_limited'
   | 'backend_unavailable'
-  | 'server_shutdown';
+  | 'server_shutdown'
+  | 'account_restricted'
+  | 'profile_incomplete';
 
 /** WebSocket close codes (4000-4999 are application-defined). */
 export const CLOSE_CODES: Readonly<Record<ErrorCode | 'left', number>> = {
@@ -104,6 +106,8 @@ export const CLOSE_CODES: Readonly<Record<ErrorCode | 'left', number>> = {
   rate_limited: 4013,
   backend_unavailable: 4014,
   server_shutdown: 4015,
+  account_restricted: 4016,
+  profile_incomplete: 4017,
 };
 
 /** Errors after which the client should stop retrying automatically and show the player why. */
@@ -119,6 +123,8 @@ export const FATAL_CLOSE_CODES: ReadonlySet<number> = new Set([
   CLOSE_CODES.not_allowed,
   CLOSE_CODES.friend_not_online,
   CLOSE_CODES.replaced,
+  CLOSE_CODES.account_restricted,
+  CLOSE_CODES.profile_incomplete,
 ]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
