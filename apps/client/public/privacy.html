@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Guildhood Privacy Policy (draft)</title>
+<link rel="stylesheet" href="./legal.css" />
+</head>
+<body>
+<main>
+<a class="back" href="./">← Back to Guildhood</a>
+<h1>Privacy Policy</h1>
+<p>Version 2026-11-24</p>
+<p class="draft">Draft for testing. Guildhood is not publicly released, and this policy has not been reviewed by a lawyer. It describes what the current software actually stores. It will be reviewed and completed (including contact details and age requirements) before any public launch.</p>
+
+<h2>What we store</h2>
+<ul>
+<li><strong>Account:</strong> your email address and a password. Passwords are handled by our sign-in provider (Supabase Auth) and stored only as a one-way hash; Guildhood never sees or stores your password in readable form.</li>
+<li><strong>Profile:</strong> your username, display name, preset avatar, optional bio, and who may see your profile card.</li>
+<li><strong>Private settings:</strong> whether you accept friend requests, and which version of these terms you accepted and when.</li>
+<li><strong>Game data:</strong> friends and friend requests, notifications, your cars and their paint color, your Marks balance and its history, and which live session you are in while you play. Car positions during play are kept only in the game server’s memory and are not saved.</li>
+<li><strong>Security records:</strong> a log of security-relevant events (account created, username changed, account deletion requested and completed, account restrictions) with the time and your account id.</li>
+</ul>
+
+<h2>Why</h2>
+<p>To let you sign in, play with friends, keep your progress, keep the game fair and safe, and investigate abuse.</p>
+
+<h2>Who can see what</h2>
+<p>Your email address is never shown to other players. Your display name and avatar appear to friends and to players in the same session. Your profile card (username, display name, avatar, bio) follows your visibility choice: everyone, friends, or only you.</p>
+
+<h2>Where it is processed</h2>
+<p>Data is stored with Supabase (database, sign-in, real-time updates) and processed by the Guildhood game server. During testing these may run on a tester’s own computer.</p>
+
+<h2>Deleting your account</h2>
+<p>You can delete your account in the app (Account → Delete account). This permanently removes your account, profile, settings, friends, requests, notifications you received, cars, Marks, and history. Notifications other players received from you are changed to show “A deleted player”. We keep a minimal security record that the account existed and was deleted (event types, times, and the account id; usernames are removed) to protect against abuse. Sign-in tokens already issued stop working for game services right away and expire within one hour.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the version above changes and you will be asked to review it.</p>
+</main>
+</body>
+</html>

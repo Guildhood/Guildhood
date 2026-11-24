@@ -17,9 +17,11 @@
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <!-- Production builds add a Content-Security-Policy here (vite.config.ts). -->
     <title>Guildhood</title>
   </head>
   <body>
+    <div id="net-banner" role="status" aria-live="polite" hidden></div>
     <div id="app"></div>
     <div id="rotate" role="alert">
       <div class="rotate-card">

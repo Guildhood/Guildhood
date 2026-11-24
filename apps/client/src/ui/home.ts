@@ -3,19 +3,28 @@ import { CAR_PALETTE, type JoinSpec } from '@guildhood/shared';
 import { STARTER_NEIGHBORHOOD_ID } from '../config.ts';
 import { friendlyError } from '../supabase.ts';
 import { clear, formatFriendCode, formatMarks, h } from './dom.ts';
+import type { AccountUser, OwnProfile } from '../auth/manager.ts';
+import { renderAvatar } from './avatars.ts';
+import { maskEmail } from './messages.ts';
 import type { Screen } from './screen.ts';
 import { toast } from './toast.ts';
 
 export interface HomeContext {
   supabase: SupabaseClient;
   userId: string;
+  /** Committed profile and account, published by the AuthManager. */
+  profile: OwnProfile;
+  user: AccountUser;
   drive(join: JoinSpec): void;
+  openProfile(): void;
+  openAccount(): void;
   signOut(): void;
 }
 
 interface Friend {
   user_id: string;
   display_name: string;
+  avatar_asset_id: string | null;
   online: boolean;
   instance_id: string | null;
   neighborhood_name: string | null;
@@ -33,8 +42,6 @@ interface Social {
   outgoing: PendingRequest[];
 }
 interface HomeData {
-  displayName: string;
-  friendCode: string;
   balance: number;
   activeVehicleId: string | null;
   cars: { id: string; model_id: string; color_index: number; name: string }[];
@@ -84,7 +91,7 @@ export class HomeScreen implements Screen {
   private readonly overlay = h('div');
   private structured = false;
 
-  constructor(private readonly ctx: HomeContext) {
+  constructor(private ctx: HomeContext) {
     this.el = h('div', { class: 'home', 'data-testid': 'home' }, h('div', { class: 'muted', text: 'Loading…' }));
     this.friendsPanel = this.buildFriendsPanel();
   }
@@ -93,6 +100,12 @@ export class HomeScreen implements Screen {
   private readonly onVisible = () => {
     if (document.visibilityState === 'visible') void this.refreshSocial();
   };
+
+  /** A newer committed profile (e.g. after revalidation): refresh read-only parts in place. */
+  updateProfile(profile: OwnProfile): void {
+    this.ctx = { ...this.ctx, profile };
+    this.render();
+  }
 
   mounted(): void {
     void this.load();
@@ -114,7 +127,7 @@ export class HomeScreen implements Screen {
     const sb = this.ctx.supabase;
     const uid = this.ctx.userId;
     const [profile, wallet, cars, social, hood] = await Promise.all([
-      sb.from('profiles').select('display_name, friend_code, active_vehicle_id').eq('id', uid).single(),
+      sb.from('profiles').select('active_vehicle_id').eq('id', uid).single(),
       sb.from('wallets').select('balance').eq('user_id', uid).single(),
       sb.from('player_vehicles').select('id, model_id, color_index, vehicle_models(name)').eq('owner_id', uid).order('acquired_at'),
       sb.rpc('get_social_overview'),
@@ -127,8 +140,6 @@ export class HomeScreen implements Screen {
       return;
     }
     this.data = {
-      displayName: profile.data.display_name,
-      friendCode: profile.data.friend_code,
       balance: Number(wallet.data.balance),
       activeVehicleId: profile.data.active_vehicle_id,
       cars: (cars.data ?? []).map((c) => ({
@@ -222,21 +233,29 @@ export class HomeScreen implements Screen {
     const friendsDriving = d.social.friends.filter((f) => f.online).length;
     const activeCar = d.cars.find((c) => c.id === d.activeVehicleId) ?? d.cars[0];
 
+    const p = this.ctx.profile;
     const topbar = h(
       'div',
       { class: 'topbar' },
       h('div', { class: 'brand' }, h('div', { class: 'brand-mark', 'aria-hidden': 'true' }), 'Guildhood'),
-      h('button', { class: 'chip', 'data-testid': 'display-name', text: d.displayName, 'aria-label': 'Change your name', onClick: () => this.renameSheet() }),
+      h(
+        'button',
+        { class: 'chip profile-chip', 'data-testid': 'open-profile', 'aria-label': 'Your profile', onClick: () => this.ctx.openProfile() },
+        renderAvatar(p.avatar_asset_id, 34),
+        h('span', { class: 'chip-names' }, h('span', { 'data-testid': 'home-display-name', text: p.display_name }), h('small', { 'data-testid': 'home-username', text: `@${p.username ?? ''}` })),
+      ),
       h('div', { class: 'chip marks', 'data-testid': 'balance', text: formatMarks(d.balance) }),
       h(
         'div',
         { class: 'chip' },
         'Friend code ',
-        h('strong', { 'data-testid': 'friend-code', text: formatFriendCode(d.friendCode) }),
-        h('button', { class: 'secondary', text: 'Copy', onClick: () => void this.copyCode(d.friendCode) }),
+        h('strong', { 'data-testid': 'friend-code', text: formatFriendCode(p.friend_code) }),
+        h('button', { class: 'secondary', text: 'Copy', onClick: () => void this.copyCode(p.friend_code) }),
       ),
-      h('button', { class: 'secondary', text: 'Sign out', onClick: () => this.ctx.signOut() }),
+      h('button', { class: 'secondary', text: 'Account', 'data-testid': 'open-account', onClick: () => this.ctx.openAccount() }),
+      h('button', { class: 'secondary', text: 'Sign out', 'data-testid': 'sign-out', onClick: () => this.ctx.signOut() }),
     );
+    const session = h('div', { class: 'session-line', 'data-testid': 'session-status', text: `Signed in as ${maskEmail(this.ctx.user.email)}` });
 
     const hood = h(
       'div',
@@ -286,9 +305,10 @@ export class HomeScreen implements Screen {
 
     const left = h('div', { class: 'col' }, hood, garage);
     if (!this.structured) {
-      this.el.replaceChildren(topbar, h('div', { class: 'home-grid' }, left, h('div', { class: 'col' }, this.friendsPanel)), this.overlay);
+      this.el.replaceChildren(topbar, session, h('div', { class: 'home-grid' }, left, h('div', { class: 'col' }, this.friendsPanel)), this.overlay);
       this.structured = true;
     } else {
+      this.el.querySelector('.session-line')?.replaceWith(session);
       this.topbar.replaceWith(topbar);
       this.leftCol.replaceWith(left);
     }
@@ -361,6 +381,7 @@ export class HomeScreen implements Screen {
         h(
           'div',
           { class: 'list-item', 'data-testid': 'friend', dataset: { userId: f.user_id, online: String(f.online) } },
+          renderAvatar(f.avatar_asset_id, 36),
           h('div', { class: `dot${f.online ? ' on' : ''}`, 'aria-hidden': 'true' }),
           h('div', { class: 'grow' }, h('div', { class: 'name', text: f.display_name }), h('div', { class: 'muted', text: where })),
           f.online
@@ -419,41 +440,5 @@ export class HomeScreen implements Screen {
     } catch {
       toast(`Your friend code is ${formatFriendCode(code)}`);
     }
-  }
-
-  private renameSheet(): void {
-    if (!this.data) return;
-    const input = h('input', { type: 'text', maxlength: '20', value: this.data.displayName, 'aria-label': 'Display name', 'data-testid': 'rename-input' });
-    const error = h('div', { class: 'error', role: 'alert' });
-    const close = () => backdrop.remove();
-    const backdrop = h(
-      'div',
-      { class: 'sheet-backdrop', onClick: (e: Event) => e.target === backdrop && close() },
-      h(
-        'form',
-        {
-          class: 'sheet',
-          onSubmit: async (e: Event) => {
-            e.preventDefault();
-            const name = input.value.trim().replace(/\s+/g, ' ');
-            const { error: err } = await this.ctx.supabase.from('profiles').update({ display_name: name }).eq('id', this.ctx.userId);
-            if (err) {
-              error.textContent = friendlyError(err.message);
-              return;
-            }
-            if (this.data) this.data.displayName = name;
-            close();
-            this.render();
-          },
-        },
-        h('h2', { text: 'Your driver name' }),
-        h('p', { class: 'muted', style: { margin: '0' }, text: 'Friends and other drivers see this above your car.' }),
-        input,
-        error,
-        h('div', { class: 'row' }, h('button', { type: 'button', class: 'secondary grow', text: 'Cancel', onClick: close }), h('button', { type: 'submit', class: 'grow', text: 'Save', 'data-testid': 'rename-save' })),
-      ),
-    );
-    this.overlay.append(backdrop);
-    setTimeout(() => input.focus(), 50);
   }
 }
