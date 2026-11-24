@@ -29,14 +29,17 @@ export default defineConfig({
       cwd: repo,
       url: 'http://127.0.0.1:2567/healthz',
       reuseExistingServer: !process.env.CI,
+      stdout: 'pipe',
       env: { SUPABASE_URL: env.SUPABASE_URL, SUPABASE_SECRET_KEY: env.SUPABASE_SECRET_KEY, PORT: '2567', HOST: '127.0.0.1', LOG_LEVEL: 'warn' },
     },
     {
-      command: 'npx vite build --config apps/client/vite.config.ts && npx vite preview --config apps/client/vite.config.ts --port 5173 --strictPort',
+      // Bind explicitly to IPv4: on some hosts (GitHub runners) `localhost` resolves to ::1 only.
+      command: 'npx vite build --config apps/client/vite.config.ts && npx vite preview --config apps/client/vite.config.ts --host 127.0.0.1 --port 5173 --strictPort',
       cwd: repo,
       url: 'http://127.0.0.1:5173',
       timeout: 180_000,
       reuseExistingServer: !process.env.CI,
+      stdout: 'pipe',
       env: {
         VITE_SAME_ORIGIN_BACKEND: '1',
         VITE_SUPABASE_PUBLISHABLE_KEY: env.SUPABASE_PUBLISHABLE_KEY,

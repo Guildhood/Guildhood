@@ -82,7 +82,11 @@ API, Realtime, Mailpit), Node 22.23, Playwright 1.63 with Chromium.
 were mutation-checked: deliberately opening an update hole on wallets and a read hole on profiles
 made them fail. The "Guild, not gang" guard was checked the same way.
 
-CI on GitHub runs everything above on each push, plus the container build.
+**On GitHub Actions** (run #2, commit `cac5431`), typecheck, unit, database (39/39), and game
+server (29/29) tests passed, and so did the container build. The end-to-end step never started
+there: the preview web server bound to `localhost`, which resolves to IPv6 on GitHub's runners,
+so Playwright couldn't reach it at `127.0.0.1`. The fix (bind to `127.0.0.1`) passes 9/9 locally
+but has not yet run on GitHub.
 
 ### Bugs the tests found (all fixed)
 
