@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- viewport-fit=cover lets the game draw under rounded corners; UI is inset with env(safe-area-inset-*). -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Guildhood" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#1d2b24" />
+    <meta name="description" content="Guildhood: drive around your neighborhood with friends." />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <title>Guildhood</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="rotate" role="alert">
+      <div class="rotate-card">
+        <div class="rotate-icon" aria-hidden="true"></div>
+        <p>Turn your iPad sideways to play Guildhood.</p>
+      </div>
+    </div>
+    <div id="toasts" aria-live="polite"></div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "guildhood",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Guildhood: an original multiplayer neighborhood car-and-Guild browser game for iPad.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "workspaces": [
+    "packages/shared",
+    "apps/server",
+    "apps/client"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p . && tsc -p packages/shared && tsc -p apps/server && tsc -p apps/client",
+    "test:unit": "vitest run --project shared --project client-unit",
+    "test:db": "vitest run --project db",
+    "test:server": "vitest run --project server",
+    "test:e2e": "playwright test -c apps/client/playwright.config.ts",
+    "test": "npm run test:unit && npm run test:db && npm run test:server",
+    "env:local": "node scripts/supabase-env.mjs",
+    "db:reset": "supabase db reset",
+    "dev": "node scripts/dev.mjs",
+    "lan": "node scripts/dev.mjs --lan",
+    "build:client": "npm run build -w apps/client",
+    "build:server": "npm run build -w apps/server",
+    "wait:supabase": "node scripts/wait-for-supabase.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "pg": "8.23.1",
+    "supabase": "3.3.0",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.1"
+  }
+}

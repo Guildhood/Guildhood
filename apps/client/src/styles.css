@@ -1,0 +1,629 @@
+/* Guildhood client styles. iPad touch first: 44pt+ targets, landscape, safe areas, no hover reliance. */
+:root {
+  --bg: #1d2b24;
+  --bg-2: #24372d;
+  --panel: #f6f1e7;
+  --panel-2: #ebe3d3;
+  --ink: #1f2a24;
+  --ink-soft: #5a6a60;
+  --copper: #c9692f;
+  --copper-dark: #a4521f;
+  --leaf: #3e8e5e;
+  --danger: #c23b3b;
+  --line: #d8cdb8;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --tap: 48px;
+  --radius: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  /* No pull-to-refresh, rubber-banding, or double-tap zoom. */
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+#app {
+  position: absolute;
+  inset: 0;
+}
+
+button {
+  font: inherit;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  border: 0;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-weight: 600;
+  font-size: 17px;
+  color: #fff;
+  background: var(--copper);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+button:active {
+  background: var(--copper-dark);
+  transform: scale(0.98);
+}
+button.secondary {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+button.secondary:active {
+  background: var(--line);
+}
+button.ghost {
+  background: transparent;
+  color: var(--ink-soft);
+}
+button.danger {
+  background: var(--danger);
+}
+button:disabled {
+  opacity: 0.5;
+}
+
+input[type='email'],
+input[type='text'] {
+  /* 16px+ prevents iOS zooming the page when the field is focused. */
+  font: inherit;
+  font-size: 18px;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  width: 100%;
+}
+input:focus {
+  outline: none;
+  border-color: var(--copper);
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+.error {
+  color: var(--danger);
+  font-weight: 600;
+}
+.error:empty {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Full-screen centered card (sign-in, not configured, fatal errors)
+   --------------------------------------------------------------------------------------------- */
+.center-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left));
+  background: radial-gradient(circle at 30% 20%, #2f4a3b, var(--bg) 70%);
+}
+.card {
+  width: min(480px, 100%);
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.brand-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--copper), #e3a45f);
+  position: relative;
+}
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 11px;
+  border-radius: 50% 0;
+  background: var(--leaf);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Home
+   --------------------------------------------------------------------------------------------- */
+.home {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding: calc(12px + var(--safe-top)) calc(16px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  gap: 12px;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  flex-wrap: wrap;
+}
+.topbar .brand {
+  font-size: 24px;
+  margin-right: auto;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+}
+.chip button {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+.marks::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f6c77d, var(--copper));
+}
+.home-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.panel {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.panel h2 {
+  margin: 0;
+  font-size: 19px;
+}
+.panel.grow {
+  flex: 1;
+}
+.scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+.hood {
+  background: linear-gradient(135deg, #3e8e5e, #2b6a46);
+  color: #fff;
+}
+.hood .muted {
+  color: #d9eadf;
+}
+.hood button.drive-btn {
+  min-height: 72px;
+  font-size: 24px;
+  border-radius: 18px;
+  background: var(--copper);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.row .grow {
+  flex: 1;
+  min-width: 0;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fff;
+  border-radius: 12px;
+  min-height: 60px;
+}
+.list-item .name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #b7b0a2;
+  flex: none;
+}
+.dot.on {
+  background: var(--leaf);
+  box-shadow: 0 0 0 4px rgba(62, 142, 94, 0.2);
+}
+.swatches {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.swatch {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+}
+.swatch.selected {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px #fff inset;
+}
+.car-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.car-art {
+  width: 120px;
+  height: 64px;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Sheets / dialogs
+   --------------------------------------------------------------------------------------------- */
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 18, 14, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: calc(20px + var(--safe-top)) calc(20px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(20px + var(--safe-left));
+}
+.sheet {
+  width: min(520px, 100%);
+  max-height: 100%;
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sheet h2 {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Driving
+   --------------------------------------------------------------------------------------------- */
+.drive {
+  position: absolute;
+  inset: 0;
+  background: #9fc7e3;
+  touch-action: none;
+}
+.drive canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  padding: calc(10px + var(--safe-top)) calc(14px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(14px + var(--safe-left));
+}
+.hud > * {
+  pointer-events: auto;
+}
+.hud-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.hud-pill {
+  background: rgba(20, 30, 25, 0.72);
+  color: #fff;
+  border-radius: 999px;
+  min-height: var(--tap);
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.hud-pill.title {
+  margin: 0 auto;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  padding: 4px 18px;
+}
+.hud-pill.title small {
+  font-weight: 500;
+  opacity: 0.8;
+}
+.net-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7ddc9b;
+}
+.net-dot.bad {
+  background: #f2b84b;
+}
+.net-dot.down {
+  background: #f26b6b;
+}
+
+/* Touch controls. Sized for thumbs; positioned inside safe areas. */
+.steer-pad {
+  position: absolute;
+  left: calc(18px + var(--safe-left));
+  bottom: calc(18px + var(--safe-bottom));
+  width: min(300px, 32vw);
+  height: 150px;
+  border-radius: 75px;
+  background: rgba(20, 30, 25, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  touch-action: none;
+}
+.steer-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 110px;
+  height: 110px;
+  margin: -55px 0 0 -55px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  transition: transform 0.08s ease-out;
+}
+.steer-pad .arrow {
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-top: -14px;
+  border: 14px solid transparent;
+  pointer-events: none;
+  opacity: 0.8;
+}
+.steer-pad .arrow.l {
+  left: 14px;
+  border-right: 18px solid #fff;
+  border-left-width: 0;
+}
+.steer-pad .arrow.r {
+  right: 14px;
+  border-left: 18px solid #fff;
+  border-right-width: 0;
+}
+.pedals {
+  position: absolute;
+  right: calc(18px + var(--safe-right));
+  bottom: calc(18px + var(--safe-bottom));
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+.pedal {
+  border-radius: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+  touch-action: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+.pedal.gas {
+  width: 120px;
+  height: 190px;
+  background: rgba(62, 142, 94, 0.85);
+}
+.pedal.brake {
+  width: 104px;
+  height: 130px;
+  background: rgba(194, 59, 59, 0.85);
+}
+.pedal.down {
+  transform: scale(0.95);
+  filter: brightness(1.2);
+}
+.speedo {
+  position: absolute;
+  left: 50%;
+  bottom: calc(18px + var(--safe-bottom));
+  transform: translateX(-50%);
+  min-width: 120px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+}
+.banner {
+  position: absolute;
+  left: 50%;
+  top: calc(76px + var(--safe-top));
+  transform: translateX(-50%);
+  background: rgba(20, 30, 25, 0.88);
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Toasts and the rotate prompt
+   --------------------------------------------------------------------------------------------- */
+#toasts {
+  position: fixed;
+  top: calc(10px + var(--safe-top));
+  right: calc(14px + var(--safe-right));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: none;
+  max-width: min(420px, 60vw);
+}
+.toast {
+  pointer-events: auto;
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.toast .grow {
+  flex: 1;
+}
+
+#rotate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  font-size: 22px;
+  font-weight: 700;
+}
+@media (orientation: portrait) {
+  #rotate {
+    display: flex;
+  }
+}
+.rotate-icon {
+  width: 90px;
+  height: 130px;
+  margin: 0 auto 18px;
+  border: 6px solid #fff;
+  border-radius: 16px;
+  animation: tilt 2.2s ease-in-out infinite;
+}
+@keyframes tilt {
+  0%,
+  30% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+/* Compact iPads (e.g. mini in landscape, 1024px wide or less). */
+@media (max-width: 1100px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .topbar .brand {
+    font-size: 20px;
+  }
+}
+@media (max-height: 700px) {
+  .pedal.gas {
+    height: 160px;
+  }
+  .steer-pad {
+    height: 130px;
+  }
+}
