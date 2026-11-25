@@ -95,7 +95,12 @@ setTimeout(() => {
   console.log(' Guildhood is running.');
   console.log(`  On this computer: http://localhost:${PORT}`);
   if (lan) {
-    for (const a of lanAddresses) console.log(`  On your iPads:     http://${a}:${PORT}`);
+    // Email links (verification, password reset) only work at a .local name: Supabase Auth refuses
+    // to redirect to bare IP addresses. The 6-digit code in every email works at either address.
+    const host = os.hostname().replace(/\.$/, '');
+    const mdns = host.endsWith('.local') ? host : `${host}.local`;
+    console.log(`  On your iPads:     http://${mdns}:${PORT}   (email links work here)`);
+    for (const a of lanAddresses) console.log(`  or by address:     http://${a}:${PORT}   (use the 6-digit codes from emails)`);
     if (!lanAddresses.length) console.log('  No Wi-Fi address found: connect this computer to the same Wi-Fi as the iPads.');
   }
   console.log(`  Sign-in emails:   ${env.MAILPIT_URL} (codes are also printed below)`);
@@ -117,7 +122,8 @@ setInterval(async () => {
       if (!primed) continue;
       const code = String(m.Snippet ?? '').match(/\b(\d{6})\b/)?.[1];
       const to = m.To?.[0]?.Address ?? 'unknown';
-      if (code) console.log(`\n  ✉  Sign-in code for ${to}: ${code}\n`);
+      const what = /reset/i.test(m.Subject ?? '') ? 'Password reset code' : /confirm/i.test(m.Subject ?? '') ? 'Email confirmation code' : 'Code';
+      if (code) console.log(`\n  ✉  ${what} for ${to}: ${code}\n`);
     }
     primed = true;
   } catch {

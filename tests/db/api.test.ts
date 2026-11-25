@@ -1,13 +1,13 @@
 // End-to-end checks through the real Supabase stack: Auth (email code), the Data API, and Realtime.
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { afterAll, describe, expect, it } from 'vitest';
-import { anonClient, deleteAuthUsers, serviceClient, signInWithEmailCode, type SignedInPlayer } from '../support/auth.ts';
+import { anonClient, deleteAuthUsers, serviceClient, registerPlayer, type SignedInPlayer } from '../support/auth.ts';
 import { STARTER_NEIGHBORHOOD_ID } from '../support/db.ts';
 
 const players: SignedInPlayer[] = [];
 const channels: RealtimeChannel[] = [];
 async function player(label: string) {
-  const p = await signInWithEmailCode(label);
+  const p = await registerPlayer(label);
   players.push(p);
   return p;
 }
@@ -61,7 +61,7 @@ async function subscribed(make: () => RealtimeChannel, client: { removeChannel(c
 }
 
 describe('Data API as a signed-in player', () => {
-  it('email-code sign-in yields a starter account readable only by its owner', async () => {
+  it('a verified registration yields a starter account readable only by its owner', async () => {
     const a = await player('api-a');
     const { data: wallet } = await a.client.from('wallets').select('balance').single();
     expect(wallet).toEqual({ balance: 500 });

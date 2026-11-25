@@ -1,39 +1,68 @@
 import { devices, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { readLocalSupabase } from '../../../scripts/supabase-env.mjs';
+import { readEmail, serviceClient } from '../../../tests/support/auth.ts';
 import type { DriveDebug } from '../src/ui/drive.ts';
 
-const { MAILPIT_URL } = readLocalSupabase();
+export const PASSWORD = 'Goodpass123';
+export { readEmail, serviceClient };
 
-async function codeFor(email: string, since: number): Promise<string> {
-  for (let i = 0; i < 180; i++) {
-    const res = await fetch(`${MAILPIT_URL}/api/v1/messages?limit=200`).catch(() => null);
-    if (res?.ok) {
-      const body = (await res.json()) as { messages: { Created: string; Snippet: string; To: { Address: string }[] }[] };
-      const code = body.messages
-        .filter((m) => m.To.some((t) => t.Address.toLowerCase() === email.toLowerCase()) && Date.parse(m.Created) >= since - 5000)
-        .sort((a, b) => Date.parse(b.Created) - Date.parse(a.Created))[0]
-        ?.Snippet.match(/\b(\d{6})\b/)?.[1];
-      if (code) return code;
-    }
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  throw new Error(`No sign-in code for ${email}`);
+export const uniqueEmail = (label: string) => `${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
+export const uniqueUsername = (label: string) => `${label.replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 8)}_${Math.random().toString(36).slice(2, 8)}`;
+
+/** Create account through the real UI, up to the verify-email screen. Returns when the email was sent. */
+export async function startRegistration(page: Page, label: string, password = PASSWORD): Promise<{ email: string; since: number }> {
+  const email = uniqueEmail(label);
+  await page.goto('/');
+  await page.getByTestId('go-create').tap();
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByLabel('Confirm password', { exact: true }).fill(password);
+  await page.getByTestId('agree-terms').check();
+  const since = Date.now();
+  await page.getByTestId('create-submit').tap();
+  await expect(page.getByTestId('verify-email')).toBeVisible();
+  return { email, since };
 }
 
-/** Signs in through the real UI with a fresh email and waits for the home screen. */
-export async function signIn(page: Page, label: string): Promise<string> {
-  const email = `${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
+/** Full registration with the emailed 6-digit code; ends on the onboarding screen. */
+export async function register(page: Page, label: string): Promise<{ email: string; password: string }> {
+  const { email, since } = await startRegistration(page, label);
+  const { code } = await readEmail(email, since);
+  await page.getByTestId('code').fill(code!);
+  await page.getByTestId('verify-submit').tap();
+  await expect(page.getByTestId('onboarding')).toBeVisible();
+  return { email, password: PASSWORD };
+}
+
+export async function onboard(page: Page, username: string, displayName = 'Test Driver', avatar = 'leaf_moss'): Promise<void> {
+  await page.getByTestId('username').fill(username);
+  await page.getByTestId('onboarding-continue').tap();
+  await page.getByTestId('display-name-input').fill(displayName);
+  await page.getByTestId('onboarding-continue').tap();
+  await page.getByTestId(`avatar-${avatar}`).tap();
+  await page.getByTestId('onboarding-continue').tap();
+  await expect(page.getByTestId('review')).toBeVisible();
+  await page.getByTestId('onboarding-continue').tap();
+  await expect(page.getByTestId('home')).toBeVisible();
+}
+
+/** Register, verify, and finish onboarding through the UI. */
+export async function signUpAndOnboard(page: Page, label: string, displayName = 'Test Driver'): Promise<{ email: string; password: string; username: string }> {
+  const creds = await register(page, label);
+  const username = uniqueUsername(label);
+  await onboard(page, username, displayName);
+  return { ...creds, username };
+}
+
+export async function signIn(page: Page, email: string, password: string): Promise<void> {
   await page.goto('/');
-  await page.getByTestId('email').fill(email);
-  const since = Date.now();
-  await page.getByTestId('send-code').tap();
-  await page.getByTestId('code').fill(await codeFor(email, since));
-  await page.getByTestId('verify-code').tap();
-  await expect(page.getByTestId('balance')).toBeVisible();
-  return email;
+  await page.getByTestId('go-sign-in').tap();
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByTestId('sign-in-submit').tap();
 }
 
 export const debug = (page: Page) => page.evaluate(() => window.__guildhoodDebug?.drive ?? null) as Promise<DriveDebug | null>;
+export const authState = (page: Page) => page.evaluate(() => window.__guildhoodDebug?.auth?.state ?? null);
 
 export async function waitLive(page: Page): Promise<DriveDebug> {
   await page.waitForFunction(() => window.__guildhoodDebug?.drive?.status === 'live', null, { timeout: 30_000 });
@@ -50,10 +79,6 @@ export class Fingers {
 
   async press(points: { x: number; y: number; id: number }[]): Promise<void> {
     await this.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points });
-  }
-
-  async move(points: { x: number; y: number; id: number }[]): Promise<void> {
-    await this.cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: points });
   }
 
   async release(): Promise<void> {
@@ -82,4 +107,11 @@ export async function newIpad(browser: Browser): Promise<Page> {
   const { defaultBrowserType: _ignored, ...ipad } = devices['iPad Pro 11 landscape'];
   const ctx = await browser.newContext({ ...ipad, deviceScaleFactor: 1, baseURL: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:5173' });
   return ctx.newPage();
+}
+
+/** Collects everything the page writes to its console, to check nothing sensitive is logged. */
+export function captureConsole(page: Page): string[] {
+  const lines: string[] = [];
+  page.on('console', (m) => lines.push(m.text()));
+  return lines;
 }

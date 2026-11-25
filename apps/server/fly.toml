@@ -1,4 +1,4 @@
-# Fly.io config for the game server (NOT deployed in Phase 1; see docs/RUNNING.md "Cloud").
+# Fly.io config for the game server (NOT deployed in Phase 1; see docs/deployment.md "Cloud").
 # Deploy from the repository root:
 #   fly deploy . -c apps/server/fly.toml --dockerfile apps/server/Dockerfile
 # Secrets (never commit them):      fly secrets set -c apps/server/fly.toml \

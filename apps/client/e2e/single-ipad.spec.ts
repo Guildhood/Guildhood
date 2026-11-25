@@ -1,49 +1,59 @@
 import { expect, test } from '@playwright/test';
-import { center, debug, driveWithTouch, signIn, waitLive } from './helpers.ts';
+import { center, debug, driveWithTouch, signUpAndOnboard, waitLive } from './helpers.ts';
 
 test.describe('one iPad', () => {
-  test('signs in with an email code and shows the starter account', async ({ page }) => {
-    await signIn(page, 'solo');
+  test('a new account starts with the starter car, Marks, and its chosen profile', async ({ page }) => {
+    const { username } = await signUpAndOnboard(page, 'solo', 'Solo Driver');
     await expect(page.getByTestId('balance')).toHaveText('500 Marks');
     await expect(page.getByTestId('car-name')).toHaveText('Sprout Hatch');
     await expect(page.getByTestId('friend-code')).toHaveText(/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/);
     await expect(page.getByTestId('neighborhood-name')).toHaveText('Copperleaf Commons');
+    await expect(page.getByTestId('home-display-name')).toHaveText('Solo Driver');
+    await expect(page.getByTestId('home-username')).toHaveText(`@${username}`);
   });
 
-  test('renaming and repainting persist across reloads', async ({ page }) => {
-    await signIn(page, 'paint');
-    await page.getByTestId('display-name').tap();
-    await page.getByTestId('rename-input').fill('Lantern Lou');
-    await page.getByTestId('rename-save').tap();
-    await expect(page.getByTestId('display-name')).toHaveText('Lantern Lou');
+  test('renaming (profile settings) and repainting persist across reloads', async ({ page }) => {
+    await signUpAndOnboard(page, 'paint');
+    await page.getByTestId('open-profile').tap();
+    await page.getByTestId('edit-display-name').fill('Lantern Lou');
+    await page.getByTestId('save-profile').tap();
+    await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    await page.getByTestId('profile-back').tap();
+    await expect(page.getByTestId('home-display-name')).toHaveText('Lantern Lou');
     await page.getByTestId('swatch-4').tap();
     await expect(page.getByTestId('swatch-4')).toHaveAttribute('aria-checked', 'true');
 
     await page.reload();
-    await expect(page.getByTestId('display-name')).toHaveText('Lantern Lou');
+    await expect(page.getByTestId('home-display-name')).toHaveText('Lantern Lou');
     await expect(page.getByTestId('swatch-4')).toHaveAttribute('aria-checked', 'true');
   });
 
-  test('background refreshes keep a half-typed friend code and an open sheet', async ({ page }) => {
-    await signIn(page, 'typing');
+  test('background refreshes keep what the player is typing', async ({ page }) => {
+    await signUpAndOnboard(page, 'typing');
     const field = page.getByTestId('add-friend-code');
     await field.fill('ABCD');
     await page.getByTestId('swatch-2').tap(); // re-renders the garage and top bar
     await expect(page.getByTestId('swatch-2')).toHaveAttribute('aria-checked', 'true');
     await expect(field).toHaveValue('ABCD');
-    // A background refresh (here: the app returning to the foreground) while a sheet is open.
-    await page.getByTestId('display-name').tap();
-    await page.getByTestId('rename-input').fill('Half Typed');
-    const refreshed = page.waitForResponse((r) => r.url().includes('get_social_overview'));
+    // App returns to the foreground: the account is revalidated and republished; home updates in place.
+    const refreshed = page.waitForResponse((r) => r.url().includes('get_my_account_status'));
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
     await refreshed;
-    await page.waitForTimeout(200);
-    await expect(page.getByTestId('rename-input')).toHaveValue('Half Typed');
+    await page.waitForTimeout(300);
     await expect(field).toHaveValue('ABCD');
+    // Same for unsaved edits in profile settings.
+    await page.getByTestId('open-profile').tap();
+    await page.getByTestId('edit-display-name').fill('Half Typed');
+    const again = page.waitForResponse((r) => r.url().includes('get_my_account_status'));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await again;
+    await page.waitForTimeout(300);
+    await expect(page.getByTestId('edit-display-name')).toHaveValue('Half Typed');
+    await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
   });
 
   test('drives with two-finger touch controls under server authority', async ({ page }) => {
-    await signIn(page, 'drive');
+    await signUpAndOnboard(page, 'drive');
     await page.getByTestId('drive').tap();
     const start = await waitLive(page);
     const before = start.serverCar ?? (await debug(page))!.serverCar;
@@ -64,7 +74,7 @@ test.describe('one iPad', () => {
   });
 
   test('recovers from a network drop and keeps the same seat', async ({ page, context }) => {
-    await signIn(page, 'drop');
+    await signUpAndOnboard(page, 'drop');
     await page.getByTestId('drive').tap();
     const first = await waitLive(page);
 
@@ -87,7 +97,7 @@ test.describe('one iPad', () => {
   });
 
   test('detects a silent Wi-Fi drop (no close event) and resumes when the network returns', async ({ page, context }) => {
-    await signIn(page, 'silent');
+    await signUpAndOnboard(page, 'silent');
     await page.getByTestId('drive').tap();
     const first = await waitLive(page);
     await context.setOffline(true); // traffic stops; the socket never reports closing
@@ -101,7 +111,7 @@ test.describe('one iPad', () => {
   });
 
   test('asks to rotate in portrait and fits controls to the landscape screen', async ({ page }) => {
-    await signIn(page, 'layout');
+    await signUpAndOnboard(page, 'layout');
     await page.getByTestId('drive').tap();
     await waitLive(page);
     const vp = page.viewportSize()!;

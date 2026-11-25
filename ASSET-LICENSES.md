@@ -14,7 +14,8 @@ there, or if a listed third-party package's installed version or license differs
 | `apps/client/public/icons/icon-192.png` | Rendered from `icon.svg` | Project-owned |
 | `apps/client/public/icons/icon-512.png` | Rendered from `icon.svg` | Project-owned |
 | `apps/client/public/manifest.webmanifest` | Original | Project-owned |
-| `supabase/templates/sign_in_code.html` | Original email text | Project-owned |
+| `supabase/templates/verify_email.html`, `reset_password.html`, `password_changed.html` | Original email text | Project-owned |
+| `apps/client/public/privacy.html`, `terms.html`, `legal.css` | Original draft legal text and styles | Project-owned |
 | `docs/images/*.png` | Screenshots of Guildhood taken in emulated iPads | Project-owned (documentation only, not shipped) |
 
 ## Generated at runtime (no files)
@@ -22,7 +23,8 @@ there, or if a listed third-party package's installed version or license differs
 All 3D content is built procedurally from original code: the neighborhood (roads, houses, roofs,
 windows, trees, fountain, fence) in `apps/client/src/game/world-view.ts` from the layout data in
 `packages/shared/src/world.ts`; the car in `apps/client/src/game/car-mesh.ts`; the garage car drawing
-in `apps/client/src/ui/home.ts`; the brand mark and controls in CSS.
+in `apps/client/src/ui/home.ts`; the 12 preset avatar badges in `apps/client/src/ui/avatars.ts`; the
+brand mark and controls in CSS.
 
 - **Fonts:** none bundled; the device system font is used.
 - **Audio:** none in Phase 1.

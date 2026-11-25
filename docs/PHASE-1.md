@@ -17,7 +17,7 @@ earning money, and preserving ownership work reliably on iPad.
 | Game server | One Node 22 process; Docker image; Fly.io config | Authoritative 30 Hz simulation shared with client prediction (`packages/shared`). |
 | Backend | Supabase: Auth (email code), Postgres with row level security, Realtime | Local stack (Supabase CLI) for Phase 1. |
 
-Details: [ARCHITECTURE.md](ARCHITECTURE.md).
+Details: [architecture.md](architecture.md).
 
 ## Feature status
 
@@ -51,7 +51,7 @@ on physical iPads yet** (last column).
 | Home Screen app (manifest, icons, full screen) | Partial | Manifest and meta tags present; over plain `http` there is no service worker or offline mode | Not yet tested |
 | Game server container | Working | Built by CI on GitHub; production runtime verified locally | n/a |
 | GitHub Pages deployment of the client | Partial: workflow ready, not deployed | Pages is not enabled and there is no cloud backend; a Pages build says it is not connected | n/a |
-| Cloud deployment (Supabase Cloud, Fly.io) | Deferred | Config and steps prepared in [RUNNING.md](RUNNING.md), not run | n/a |
+| Cloud deployment (Supabase Cloud, Fly.io) | Deferred | Config and steps prepared in [deployment.md](deployment.md), not run | n/a |
 | Racing, race results | Deferred (Phase 2) | | |
 | Earning Marks | Deferred (Phase 2) | | |
 | Shop and purchases | Deferred (Phase 3) | | |
@@ -82,7 +82,11 @@ API, Realtime, Mailpit), Node 22.23, Playwright 1.63 with Chromium.
 were mutation-checked: deliberately opening an update hole on wallets and a read hole on profiles
 made them fail. The "Guild, not gang" guard was checked the same way.
 
-CI on GitHub runs everything above on each push, plus the container build.
+**On GitHub Actions** (run #2, commit `cac5431`), typecheck, unit, database (39/39), and game
+server (29/29) tests passed, and so did the container build. The end-to-end step never started
+there: the preview web server bound to `localhost`, which resolves to IPv6 on GitHub's runners,
+so Playwright couldn't reach it at `127.0.0.1`. The fix (bind to `127.0.0.1`) passes 9/9 locally
+but has not yet run on GitHub.
 
 ### Bugs the tests found (all fixed)
 

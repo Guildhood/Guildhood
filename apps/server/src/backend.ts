@@ -5,6 +5,10 @@ export class BackendError extends Error {}
 export interface PlayerRecord {
   userId: string;
   displayName: string;
+  username: string | null;
+  onboardingComplete: boolean;
+  /** Active suspension or ban, if any (eligibility is re-checked while connected). */
+  restriction: { type: string; expiresAt: string | null } | null;
   vehicle: { id: string; modelId: string; colorIndex: number } | null;
   friendIds: Set<string>;
   neighborhoodIds: Set<string>;
@@ -57,6 +61,9 @@ export class SupabaseBackend implements Backend {
     const p = await this.rpc<{
       user_id: string;
       display_name: string;
+      username: string | null;
+      onboarding_complete: boolean;
+      restriction: { restriction_type: string; expires_at: string | null } | null;
       vehicle: { id: string; model_id: string; color_index: number } | null;
       friend_ids: string[];
       neighborhood_ids: string[];
@@ -65,6 +72,9 @@ export class SupabaseBackend implements Backend {
     return {
       userId: p.user_id,
       displayName: p.display_name,
+      username: p.username,
+      onboardingComplete: p.onboarding_complete,
+      restriction: p.restriction ? { type: p.restriction.restriction_type, expiresAt: p.restriction.expires_at } : null,
       vehicle: p.vehicle ? { id: p.vehicle.id, modelId: p.vehicle.model_id, colorIndex: p.vehicle.color_index } : null,
       friendIds: new Set(p.friend_ids),
       neighborhoodIds: new Set(p.neighborhood_ids),

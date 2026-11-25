@@ -47,7 +47,7 @@ export interface DriveDebug {
 
 declare global {
   interface Window {
-    __guildhoodDebug?: { drive: DriveDebug | null; dropConnection?: () => void };
+    __guildhoodDebug?: { drive: DriveDebug | null; dropConnection?: () => void; auth?: { state: string; userId: string | null } };
   }
 }
 
@@ -127,7 +127,7 @@ export class DriveScreen implements Screen {
   }
 
   mounted(): void {
-    window.__guildhoodDebug = { drive: this.debug, dropConnection: () => this.conn.simulateDrop() };
+    window.__guildhoodDebug = { ...window.__guildhoodDebug, drive: this.debug, dropConnection: () => this.conn.simulateDrop() };
     window.addEventListener('resize', this.onResize);
     document.addEventListener('visibilitychange', this.onHidden);
     this.conn.start();
@@ -176,6 +176,8 @@ export class DriveScreen implements Screen {
       auth_failed: 'Your sign-in has expired. Please sign in again.',
       backend_unavailable: 'Guildhood’s servers are having trouble. Try again in a moment.',
       network: 'Can’t reach the game server. Check your Wi-Fi.',
+      account_restricted: 'This account is restricted and can’t play right now.',
+      profile_incomplete: 'Finish setting up your profile before driving.',
     };
     const canDriveAnyway = ['instance_full', 'instance_not_found', 'friend_not_online', 'not_allowed'].includes(f.code);
     const sheet = h(
@@ -360,7 +362,7 @@ export class DriveScreen implements Screen {
     this.view?.dispose();
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onHidden);
-    if (window.__guildhoodDebug?.drive === this.debug) window.__guildhoodDebug = { drive: null };
+    if (window.__guildhoodDebug?.drive === this.debug) window.__guildhoodDebug = { ...window.__guildhoodDebug, drive: null };
   }
 }
 

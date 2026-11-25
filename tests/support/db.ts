@@ -20,16 +20,24 @@ export interface TestUser {
 }
 
 /** Creates a real auth.users row (as Supabase Auth would), which fires the signup trigger. */
-export async function createUser(label = 'player'): Promise<TestUser> {
+export async function createUser(label = 'player', userMetadata: Record<string, unknown> = {}): Promise<TestUser> {
   const id = randomUUID();
   const email = `${label}-${id.slice(0, 8)}@example.test`;
   await db().query(
     `insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
      values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2, now(),
-             '{"provider":"email","providers":["email"]}', '{}', now(), now())`,
-    [id, email],
+             '{"provider":"email","providers":["email"]}', $3, now(), now())`,
+    [id, email, JSON.stringify(userMetadata)],
   );
   return { id, email };
+}
+
+/** Runs the real onboarding functions as the player: username, display name, avatar, complete. */
+export async function onboard(u: TestUser, username: string, displayName = 'Test Driver', avatar = 'leaf_moss'): Promise<void> {
+  await run(asUser(u), 'select public.claim_username($1)', [username]);
+  await run(asUser(u), 'select public.update_my_profile($1)', [JSON.stringify({ display_name: displayName })]);
+  await run(asUser(u), 'select public.update_my_profile($1)', [JSON.stringify({ avatar_asset_id: avatar })]);
+  await run(asUser(u), 'select public.complete_onboarding()');
 }
 
 export async function deleteUsers(users: TestUser[]): Promise<void> {

@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { debug, driveWithTouch, newIpad, signIn, waitLive } from './helpers.ts';
+import { debug, driveWithTouch, newIpad, signUpAndOnboard, waitLive } from './helpers.ts';
 
 test.describe('two iPads', () => {
   test('friends add each other over Realtime, drive together, and see each other move', async ({ browser }) => {
     const a = await newIpad(browser);
     const b = await newIpad(browser);
-    await signIn(a, 'ipad-a');
-    await signIn(b, 'ipad-b');
+    await signUpAndOnboard(a, 'ipad-a');
+    await signUpAndOnboard(b, 'ipad-b');
 
     // B adds A by friend code; A is told in real time (no reload).
     const aCode = (await a.getByTestId('friend-code').textContent())!;
@@ -49,8 +49,8 @@ test.describe('two iPads', () => {
   test('a driver invites a friend, who joins from the invite', async ({ browser }) => {
     const a = await newIpad(browser);
     const b = await newIpad(browser);
-    await signIn(a, 'inv-a');
-    await signIn(b, 'inv-b');
+    await signUpAndOnboard(a, 'inv-a');
+    await signUpAndOnboard(b, 'inv-b');
     const bCode = (await b.getByTestId('friend-code').textContent())!;
     await a.getByTestId('add-friend-code').fill(bCode);
     await a.getByTestId('add-friend').tap();

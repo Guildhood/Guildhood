@@ -39,40 +39,167 @@
       "license": "Project-owned original work"
     },
     {
-      "path": "supabase/templates/sign_in_code.html",
+      "path": "apps/client/public/privacy.html",
+      "kind": "privacy policy page (text, draft)",
+      "origin": "original",
+      "license": "Project-owned original work"
+    },
+    {
+      "path": "apps/client/public/terms.html",
+      "kind": "terms of use page (text, draft)",
+      "origin": "original",
+      "license": "Project-owned original work"
+    },
+    {
+      "path": "apps/client/public/legal.css",
+      "kind": "stylesheet for legal pages",
+      "origin": "original",
+      "license": "Project-owned original work"
+    },
+    {
+      "path": "supabase/templates/verify_email.html",
+      "kind": "email template (text)",
+      "origin": "original",
+      "license": "Project-owned original work"
+    },
+    {
+      "path": "supabase/templates/reset_password.html",
+      "kind": "email template (text)",
+      "origin": "original",
+      "license": "Project-owned original work"
+    },
+    {
+      "path": "supabase/templates/password_changed.html",
       "kind": "email template (text)",
       "origin": "original",
       "license": "Project-owned original work"
     }
   ],
   "generatedAtRuntime": [
-    { "what": "Neighborhood geometry (roads, houses, roofs, trees, fountain, fence)", "source": "apps/client/src/game/world-view.ts from packages/shared/src/world.ts", "origin": "original, procedural" },
-    { "what": "Car model (body, cabin, wheels, lights, contact shadow)", "source": "apps/client/src/game/car-mesh.ts", "origin": "original, procedural" },
-    { "what": "Car name tags", "source": "apps/client/src/game/car-mesh.ts (canvas text, system font)", "origin": "original, procedural" },
-    { "what": "Garage car drawing (SVG)", "source": "apps/client/src/ui/home.ts carArt()", "origin": "original, procedural" },
-    { "what": "Brand mark, buttons, rotate prompt", "source": "apps/client/src/styles.css", "origin": "original CSS" }
+    {
+      "what": "Neighborhood geometry (roads, houses, roofs, trees, fountain, fence)",
+      "source": "apps/client/src/game/world-view.ts from packages/shared/src/world.ts",
+      "origin": "original, procedural"
+    },
+    {
+      "what": "Car model (body, cabin, wheels, lights, contact shadow)",
+      "source": "apps/client/src/game/car-mesh.ts",
+      "origin": "original, procedural"
+    },
+    {
+      "what": "Car name tags",
+      "source": "apps/client/src/game/car-mesh.ts (canvas text, system font)",
+      "origin": "original, procedural"
+    },
+    {
+      "what": "Garage car drawing (SVG)",
+      "source": "apps/client/src/ui/home.ts carArt()",
+      "origin": "original, procedural"
+    },
+    {
+      "what": "Brand mark, buttons, rotate prompt",
+      "source": "apps/client/src/styles.css",
+      "origin": "original CSS"
+    },
+    {
+      "what": "Preset avatar badges (12 emblems)",
+      "source": "apps/client/src/ui/avatars.ts (inline SVG, ids from packages/shared/src/profile-rules.ts)",
+      "origin": "original, procedural"
+    }
   ],
   "fonts": "None bundled. Uses the device system font (San Francisco on iPad) via CSS font-family.",
   "audio": "None in Phase 1.",
   "names": [
-    { "name": "Guildhood", "use": "game title" },
-    { "name": "Copperleaf Commons", "use": "starter neighborhood" },
-    { "name": "Sprout Hatch", "use": "starter car model" },
-    { "name": "Marks", "use": "in-game soft currency" }
+    {
+      "name": "Guildhood",
+      "use": "game title"
+    },
+    {
+      "name": "Copperleaf Commons",
+      "use": "starter neighborhood"
+    },
+    {
+      "name": "Sprout Hatch",
+      "use": "starter car model"
+    },
+    {
+      "name": "Marks",
+      "use": "in-game soft currency"
+    }
   ],
   "namesNote": "Invented for this project. No trademark search has been done (see docs/PHASE-1.md, Known limitations).",
   "thirdPartySoftware": [
-    { "package": "three", "version": "0.187.0", "license": "MIT", "use": "3D rendering (bundled in client)" },
-    { "package": "@supabase/supabase-js", "version": "2.119.2", "license": "MIT", "use": "Auth, Data API, Realtime (client and server)" },
-    { "package": "ws", "version": "8.23.0", "license": "MIT", "use": "WebSocket server" },
-    { "package": "jose", "version": "6.2.18", "license": "MIT", "use": "Access-token verification (server)" },
-    { "package": "vite", "version": "8.3.8", "license": "MIT", "use": "Client build and dev server (development only)" },
-    { "package": "vitest", "version": "5.1.1", "license": "MIT", "use": "Tests (development only)" },
-    { "package": "@playwright/test", "version": "1.63.0", "license": "Apache-2.0", "use": "iPad-emulation tests, icon rendering (development only)" },
-    { "package": "supabase", "version": "3.3.0", "license": "MIT", "use": "Supabase CLI (development only)" },
-    { "package": "typescript", "version": "7.0.2", "license": "Apache-2.0", "use": "Type checking (development only)" },
-    { "package": "esbuild", "version": "0.28.2", "license": "MIT", "use": "Server bundling (development only)" },
-    { "package": "tsx", "version": "4.23.15", "license": "MIT", "use": "Running TypeScript in development" },
-    { "package": "pg", "version": "8.23.1", "license": "MIT", "use": "Database tests (development only)" }
+    {
+      "package": "three",
+      "version": "0.187.0",
+      "license": "MIT",
+      "use": "3D rendering (bundled in client)"
+    },
+    {
+      "package": "@supabase/supabase-js",
+      "version": "2.119.2",
+      "license": "MIT",
+      "use": "Auth, Data API, Realtime (client and server)"
+    },
+    {
+      "package": "ws",
+      "version": "8.23.0",
+      "license": "MIT",
+      "use": "WebSocket server"
+    },
+    {
+      "package": "jose",
+      "version": "6.2.18",
+      "license": "MIT",
+      "use": "Access-token verification (server)"
+    },
+    {
+      "package": "vite",
+      "version": "8.3.8",
+      "license": "MIT",
+      "use": "Client build and dev server (development only)"
+    },
+    {
+      "package": "vitest",
+      "version": "5.1.1",
+      "license": "MIT",
+      "use": "Tests (development only)"
+    },
+    {
+      "package": "@playwright/test",
+      "version": "1.63.0",
+      "license": "Apache-2.0",
+      "use": "iPad-emulation tests, icon rendering (development only)"
+    },
+    {
+      "package": "supabase",
+      "version": "3.3.0",
+      "license": "MIT",
+      "use": "Supabase CLI (development only)"
+    },
+    {
+      "package": "typescript",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "use": "Type checking (development only)"
+    },
+    {
+      "package": "esbuild",
+      "version": "0.28.2",
+      "license": "MIT",
+      "use": "Server bundling (development only)"
+    },
+    {
+      "package": "tsx",
+      "version": "4.23.15",
+      "license": "MIT",
+      "use": "Running TypeScript in development"
+    },
+    {
+      "package": "pg",
+      "version": "8.23.1",
+      "license": "MIT",
+      "use": "Database tests (development only)"
+    }
   ]
 }
