@@ -33,7 +33,16 @@ jobs:
         run: npm run test:unit
 
       - name: Start local Supabase (Postgres, Auth, Data API, Realtime, Edge Functions, mail catcher)
-        run: npx supabase start -x storage-api,imgproxy,postgres-meta,studio,logflare,vector,supavisor
+        # The first start occasionally fails with "address already in use" while Docker binds the
+        # stack's ports (a race in container startup, not in this project). Retry the start only.
+        run: |
+          for attempt in 1 2 3; do
+            if npx supabase start -x storage-api,imgproxy,postgres-meta,studio,logflare,vector,supavisor; then exit 0; fi
+            echo "::warning::supabase start failed (attempt $attempt); stopping and retrying"
+            npx supabase stop --no-backup || true
+            sleep 5
+          done
+          exit 1
 
       - name: Write local connection settings
         run: npm run env:local
